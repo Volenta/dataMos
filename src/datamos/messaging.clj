@@ -15,22 +15,32 @@
   [connection]
   (lch/open connection))
 
-(defn configure-exchange
+(defn define-exchange
   "configures the exchange"
-  ([ch exchange type] (configure-exchange ch exchange type {:durable false :auto-delete true}))
+  ([ch exchange type] (define-exchange ch exchange type {:durable false :auto-delete true}))
   ([ch exchange type settings]
     (le/declare ch exchange type settings)))
 
 (defn subscribe-queue
-  [ch handler queue-name subscr-settings]
-  (lc/subscribe ch queue-name handler subscr-settings))
+  ([ch queue-name handler] (subscribe-queue ch queue-name handler {:auto-ack true}))
+  ([ch queue-name handler subscr-settings]
+   (lc/subscribe ch queue-name handler subscr-settings)))
+
+(defn define-queue
+  ([ch queue-name] (define-queue ch queue-name {:auto-ack true}))
+  ([ch queue-name queue-settings]
+   (lq/declare ch queue-name queue-settings)))
+
+(defn bind-queue-exchange
+  [ch queue-name exchange]
+  (lq/bind ch queue-name exchange))
 
 (defn message-handler
   ([ch exchange handler queue-name] (message-handler ch exchange handler queue-name {:auto-ack true} {:exclusive false :auto-delete true}))
   ([ch exchange handler queue-name subscr-settings] (message-handler ch exchange handler queue-name subscr-settings {:exclusive false :auto-delete true}))
   ([ch exchange handler queue-name subscr-settings queue-settings]
-   (lq/declare ch queue-name queue-settings)
-   (lq/bind ch queue-name exchange)
+   (define-queue ch queue-name queue-settings)
+   (bind-queue-exchange ch queue-name exchange)
    (subscribe-queue ch queue-name handler subscr-settings)))
 
 (defn server-named-queue
