@@ -6,7 +6,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [http-kit "2.2.0"]
                  [com.taoensso/nippy "2.13.0"]
-                 [com.novemberain/langohr "4.0.0"]]
+                 [com.novemberain/langohr "3.7.0"]]
   :main ^:skip-aot datamos.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
