@@ -6,15 +6,16 @@
             [langohr.exchange :as le]
             [langohr.consumers :as lc]
             [taoensso.nippy :as nippy]
-            [datamos.util :as u]))
+            [datamos.util :as u])
+  (:import [com.rabbitmq.client AlreadyClosedException]))
 
 ; todo: configure queue
 ; todo: bind queue to exchange
-; todo: run command with local var
 ; todo: build set-queue function
-; todo: add set-exchange to datamos.core -main
-; todo: remove set-messaging component
-; todo: rework set-exchange to use only one parameter for settings
+
+(def connection-object-set
+  #{com.novemberain.langohr.Connection
+    com.rabbitmq.client.impl.recovery.AutorecoveringChannel})
 
 (def exchange-types
   "Select one to define the way the exchange functions"
@@ -105,42 +106,54 @@
     {:datamos-cfg/connection {:datamos-cfg/low-level-connection conn
                               :datamos-cfg/channel    chan}}))
 
+(defn set-queue
+  [queue-cfg settings])
+
 (defn set-exchange
-  [config]
+  "Creates the rabbitMQ exchange. Uses the values supplied. If not, it uses the default supplied values."
+  [settings]
   (let [ex-settings exchange-conf
-        connection  (if (instance? com.rabbitmq.client.impl.recovery.AutorecoveringChannel (get-in config [:datamos-cfg/connection :datamos-cfg/channel]))
-                      (select-keys config [:datamos-cfg/connection])
+        connection  (if (instance? com.rabbitmq.client.impl.recovery.AutorecoveringChannel (get-in settings [:datamos-cfg/connection :datamos-cfg/channel]))
+                      (select-keys settings [:datamos-cfg/connection])
                       (set-channel))
-        ex-config (u/deep-merge connection ex-settings config)]
-    (println ex-config)
+        ex-config (u/deep-merge connection ex-settings settings)]
     (configure-exchange ex-config)
     ex-config))
 
-(defn set-queue
-  [queue-cfg settings])
+(defn remove-nested-key
+  "Takes map, keys (for keypath) and key. Returns the given map with the key removed."
+  [map [ks k]]
+  (update-in map ks dissoc k))
+
+(defn close
+  "Close a rabbitmq channel or connection. Returns :closed if succesfull.
+  Returns :already-closed in case of an Already Closed Exception"
+  [rmq-object]
+  (try
+    (rmq/close rmq-object) :closed
+    (catch AlreadyClosedException e nil :already-closed)))
+
+(defn close-connection-by-objectset
+  "Given a map, takes a submap supplied by key. Filters for keys which values contain objects from the objectset.
+  Closes the connections. Removes keys and values from the map. Returns the remainder of the map."
+  [m k oset]
+  (reduce remove-nested-key
+          m
+          (map (fn [x y]
+                 (close (y (k m)))
+                 [x y])
+               (repeat [k])
+               (keys
+                 (filter #(oset (type (% 1))) (k m))))))
 
 (defn stop-exchange
   [{{:keys [:datamos-cfg/channel]} :datamos-cfg/connection {:keys [:datamos-cfg/exchange-name]} :datamos-cfg/exchange :as settings}]
   (le/delete channel exchange-name))
 
 (defn stop-connection
-  [{{:keys [:datamos-cfg/channel :datamos-cfg/low-level-connection]} :datamos-cfg/connection :as settings}]
-  (when (rmq/open? channel) (rmq/close channel))
-  (when (rmq/open? low-level-connection) (rmq/close low-level-connection)))
-
-(comment
-  (defn set-messaging-component
-   "Provide keyword to set up the requested component. Returns a map with component references. Applicable keys:
-    :channel, :exchange, :queue
-    Provide settings from previous connections when available."
-   ([keyword] (set-messaging-component keyword nil))
-   ([keyword settings]
-    (case keyword
-      :channel {:connection (set-channel)}
-      :exchange (set-exchange exchange-conf settings)
-      :queue (set-queue queue-conf settings)
-      (str "Keyword " keyword "is different from the ones provided. Please select one of:
-    :exchange, :queue")))))
+  "Stop channel and connection to rabbitMQ broker. Supply settings map which contains the applicable connections"
+  [settings]
+  (close-connection-by-objectset settings :datamos-cfg/connection connection-object-set))
 
 (defn message-handler
   [ch metadata ^bytes payload]
