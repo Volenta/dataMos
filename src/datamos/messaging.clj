@@ -9,9 +9,9 @@
             [datamos.util :as u])
   (:import [com.rabbitmq.client AlreadyClosedException]))
 
-; todo: configure queue
 ; todo: bind queue to exchange
-; todo: build set-queue function
+; todo: remove queue
+; todo: remove binding
 
 (def connection-object-set
   #{com.novemberain.langohr.Connection
@@ -106,8 +106,28 @@
     {:datamos-cfg/connection {:datamos-cfg/low-level-connection conn
                               :datamos-cfg/channel    chan}}))
 
+(defn create-queue
+  "Creates queue with qualified name. Returns the settings map with new queue values added."
+  [channel qualified-name queue-settings settings]
+  (u/deep-merge
+    (->> (lq/declare channel qualified-name queue-settings)
+         ((juxt (partial u/replace-key :queue :datamos-cfg/queue-name)
+                (partial u/into-submap :datamos-cfg/queue-state [:message-count :consumer-count])))
+         (into {})
+         (u/into-submap :datamos-cfg/queue [:datamos-cfg/queue-name :datamos-cfg/queue-state]))
+    settings))
+
 (defn set-queue
-  [queue-cfg settings])
+  [settings]
+  (let [queue-settings queue-conf
+        channel        (get-in settings [:datamos-cfg/connection :datamos-cfg/channel])]
+    (if-let [qualified-name (:datamos-cfg/queue-name (:datamos-cfg/queue settings))]
+      (create-queue channel qualified-name queue-settings settings)
+      (let [uri-key        (get-in settings [:datamos-cfg/component :datamos-cfg/component-uri])
+            main-name      (str (name uri-key) "." (namespace uri-key))
+            name-uuid      (str (java.util.UUID/randomUUID))
+            qualified-name (str name-uuid "." main-name)]
+        (create-queue channel qualified-name queue-settings settings)))))
 
 (defn set-exchange
   "Creates the rabbitMQ exchange. Uses the values supplied. If not, it uses the default supplied values."
