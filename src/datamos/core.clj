@@ -7,7 +7,7 @@
   (atom {}))
 
 (def component-identifiers
-  {:datamos-cfg/component {:datamos-cfg/component-uri :datamos-fn/leader
+  {:datamos-cfg/component {:datamos-cfg/component-uri :datamos-fn/core
                            :datamos-cfg/component-alias :datamos-fn/config}})
 
 (defn -main
