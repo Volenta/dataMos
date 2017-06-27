@@ -14,5 +14,6 @@
   "Initializes datamos.core. Configures the exchange"
   [& args]
   (reset! component-settings component-identifiers)
-  (reset! component-settings (dm/set-exchange @component-settings)))
+  (reset! component-settings (dm/set-exchange @component-settings))
+  (reset! component-settings (dm/set-queue @component-settings)))
 

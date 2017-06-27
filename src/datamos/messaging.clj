@@ -10,7 +10,6 @@
   (:import [com.rabbitmq.client AlreadyClosedException]))
 
 ; todo: bind queue to exchange
-; todo: remove queue
 ; todo: remove binding
 
 (def connection-object-set
@@ -151,7 +150,7 @@
   [rmq-object]
   (try
     (rmq/close rmq-object) :closed
-    (catch AlreadyClosedException e nil :already-closed)))
+    (catch AlreadyClosedException e nil :connection-already-closed)))
 
 (defn close-connection-by-objectset
   "Given a map, takes a submap supplied by key. Filters for keys which values contain objects from the objectset.
@@ -166,9 +165,19 @@
                (keys
                  (filter #(oset (type (% 1))) (k m))))))
 
+(defn stop-queue
+  [{{:keys [:datamos-cfg/channel]} :datamos-cfg/connection {:keys [:datamos-cfg/queue-name]} :datamos-cfg/queue :as settings}]
+  (try
+    (lq/delete channel queue-name)
+    (catch AlreadyClosedException e nil :queue-already-closed))
+  (dissoc settings :datamos-cfg/queue))
+
 (defn stop-exchange
   [{{:keys [:datamos-cfg/channel]} :datamos-cfg/connection {:keys [:datamos-cfg/exchange-name]} :datamos-cfg/exchange :as settings}]
-  (le/delete channel exchange-name))
+  (try
+    (le/delete channel exchange-name)
+    (catch AlreadyClosedException e nil :exchange-already-closed))
+  (dissoc settings :datamos-cfg/exchange))
 
 (defn stop-connection
   "Stop channel and connection to rabbitMQ broker. Supply settings map which contains the applicable connections"
