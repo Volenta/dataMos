@@ -17,4 +17,5 @@
 (defn restart
   []
   (stop)
+  (Thread/sleep 2000)
   (start))

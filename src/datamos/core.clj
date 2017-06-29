@@ -15,5 +15,6 @@
   [& args]
   (reset! component-settings component-identifiers)
   (reset! component-settings (dm/set-exchange @component-settings))
-  (reset! component-settings (dm/set-queue @component-settings)))
+  (reset! component-settings (dm/set-queue @component-settings))
+  (reset! component-settings (dm/bind-queue @component-settings)))
 
