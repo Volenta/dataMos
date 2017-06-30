@@ -51,3 +51,8 @@
   [map [ks k]]
   (update-in map ks dissoc k))
 
+(defn give-qualified-name
+  [settings k]
+  (apply
+    #(str (java.util.UUID/randomUUID) "." (name %) "." (namespace %))
+    (select-submap-values settings k)))
