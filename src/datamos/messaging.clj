@@ -7,8 +7,14 @@
             [langohr.consumers :as lc]
             [taoensso.nippy :as nippy]
             [datamos.util :as u]
-            [clojure.string :as s])
+            [clojure.string :as str]
+            [datamos.spec.core :as dsc]
+            [clojure.spec.alpha :as s])
   (:import [com.rabbitmq.client AlreadyClosedException]))
+
+; TODO: Sent message function
+; TODO: Receive message
+; TODO: Sent config.
 
 (declare close)
 

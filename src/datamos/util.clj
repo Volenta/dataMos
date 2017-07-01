@@ -1,6 +1,6 @@
 (ns datamos.util
   "Contains common utility functions"
-  (:require [clojure.string :as s]))
+  (:require [clojure.string :as str]))
 
 (defn deep-merge
   [& maps]
@@ -38,7 +38,7 @@
   "Insert (namespaced) keyword, Returns (namespaced) string without leading colon"
   [keyword]
   (if (keyword? keyword)
-    (s/replace (str keyword) #"^:+" "")
+    (str/replace (str keyword) #"^:+" "")
     keyword))
 
 (defn string->keyword
