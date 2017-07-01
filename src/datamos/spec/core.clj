@@ -30,7 +30,7 @@
 (s/def ::property keyword?)                                 ;; Using property instead of predicate. Because Clojure already uses predicate in functions like s/explain
 (s/def ::object ::object-types)
 
-(s/def ::property-object (s/map-of ::property ::object))
+(s/def ::property-object (s/map-of ::property ::object :conform-keys true :min-count 1))
 (s/def ::statement (s/map-of ::subject ::property-object :conform-keys true :min-count 1))
 (s/def ::named-graphs (s/map-of keyword? ::statement :conform-keys true :min-count 1))
 
