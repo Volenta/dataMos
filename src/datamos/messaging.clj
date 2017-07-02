@@ -168,3 +168,24 @@
 (defn unfreeze-message
   [payload]
   (nippy/thaw payload))
+
+(defn start-messaging-connection
+  "Supply map with component specific settings. Starts messaging elements. Returns map
+  with settings, for each of the elements"
+  [settings]
+  (-> settings
+      (set-connection)
+      (set-exchange)
+      (set-queue)
+      (bind-queue)))
+
+(defn stop-messaging-connection
+  "Supply map with component settings. Stops all of the messaging elements.
+  Returns empty map."
+  [settings]
+  (do
+    (-> settings
+        (stop-exchange)
+        (stop-queue)
+        (stop-connection))
+    {}))

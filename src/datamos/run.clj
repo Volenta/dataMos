@@ -9,10 +9,7 @@
 
 (defn stop
   []
-  (dm/stop-exchange @dc/component-settings)
-  (dm/stop-queue @dc/component-settings)
-  (dm/stop-connection @dc/component-settings)
-  (reset! dc/component-settings (atom {})))
+  (dm/stop-messaging-connection @dc/component-settings))
 
 (defn restart
   []

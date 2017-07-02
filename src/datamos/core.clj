@@ -6,16 +6,16 @@
 (def component-settings
   (atom {}))
 
-(def component-identifiers
+(def config-queue-settings
+  (atom {}))
+
+(def core-identifiers
   {:datamos-cfg/component {:datamos-cfg/component-uri :datamos-fn/core
                            :datamos-cfg/component-alias :datamos-fn/config}})
 
 (defn -main
   "Initializes datamos.core. Configures the exchange"
   [& args]
-  (reset! component-settings component-identifiers)
-  (reset! component-settings (dm/set-connection @component-settings))
-  (reset! component-settings (dm/set-exchange @component-settings))
-  (reset! component-settings (dm/set-queue @component-settings))
-  (reset! component-settings (dm/bind-queue @component-settings)))
+  (reset! component-settings
+    (dm/start-messaging-connection core-identifiers)))
 

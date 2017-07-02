@@ -11,7 +11,7 @@
   [old-key new-key map]
   (zipmap [new-key] (vector (get map old-key))))
 
-(defn into-submap
+(defn select-into-submap
   "Select keys, a sequence of keys, from map. Inserts these into new map, under given key. Returns new map."
   [key select-ks map]
   (into {} [[key (select-keys map select-ks)]]))
@@ -35,7 +35,7 @@
   (apply f (apply select-submap-values m ks)))
 
 (defn keyword->string
-  "Insert (namespaced) keyword, Returns (namespaced) string without leading colon"
+  "Insert (namespaced) keyword, Returns (namespaced) string with colon removed"
   [keyword]
   (if (keyword? keyword)
     (str/replace (str keyword) #"^:+" "")
@@ -56,3 +56,14 @@
   (apply
     #(str (java.util.UUID/randomUUID) "." (name %) "." (namespace %))
     (select-submap-values settings k)))
+
+(defn replace-sub-value
+  "Supply map, which contains submaps. Provide key, in submap, for which you want the value to change.
+   returns supplied map with changed value. Only works for first nested layer of maps.
+   Every key's value, matching k will change to the supplied value."
+  [m k value]
+  (apply conj
+         (map
+           #(or (and (some #{k} (keys (% m))) {% (assoc (% m) k value)})
+                (select-keys m [%]))
+           (keys m))))
