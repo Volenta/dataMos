@@ -113,6 +113,13 @@
                      :datamos-cfg/queue-settings)
     s))
 
+(defn set-config-queue
+  [settings]
+  (provide-channel lq/declare
+                   settings
+                   :datamos-cfg/low-level-connection
+                   :datamos-cfg/queue-name))
+
 (defn set-exchange
   "Creates the rabbitMQ exchange. Uses the values supplied. If not, it uses the default supplied values."
   [settings]
@@ -161,6 +168,13 @@
   (close-connection-by-objectset settings :datamos-cfg/connection connection-object-set)
   (dissoc settings :datamos-cfg/connection))
 
+(defn reuse-component-connection
+  "Provide two maps. Settings, with the settings of the element.
+  Connection-settings a map which contains the connection settings to be reused"
+  [settings connection-settings]
+  (u/deep-merge settings
+                (select-keys connection-settings [:datamos-cfg/connection])))
+
 (defn message-handler
   [ch metadata ^bytes payload]
   )
@@ -168,6 +182,14 @@
 (defn unfreeze-message
   [payload]
   (nippy/thaw payload))
+
+
+(defn start-config-queue
+  [settings connection-settings]
+  (-> settings
+      (reuse-component-connection connection-settings)
+      (set-config-queue)))
+
 
 (defn start-messaging-connection
   "Supply map with component specific settings. Starts messaging elements. Returns map

@@ -9,7 +9,8 @@
 
 (defn stop
   []
-  (dm/stop-messaging-connection @dc/component-settings))
+  (reset! dc/component-settings
+    (dm/stop-messaging-connection @dc/component-settings)))
 
 (defn restart
   []
