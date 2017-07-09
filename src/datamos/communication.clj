@@ -13,6 +13,5 @@
                  settings
                  :datamos-cfg/low-level-connection
                  :datamos-cfg/exchange-name)
-               ["" message]
-               destination)))))
+               ["" message destination])))))
 
