@@ -5,12 +5,14 @@
 
 (defn send-message
   [settings message]
-  (apply lb/publish
-         (dm/vector-connection->channel
-           (conj
-             (u/select-submap-values
-              settings
-              :datamos-cfg/low-level-connection
-              :datamos-cfg/exchange-name)
-             ["" message]
-             (u/select-submap-values settings :datamos-cfg/rcpt-binding)))))
+  (let [destination (get-in message [:datamos-cfg/logistic :datamos-cfg/rcpt-fn])]
+    (apply lb/publish
+           (dm/vector-connection->channel
+             (conj
+               (u/select-submap-values
+                 settings
+                 :datamos-cfg/low-level-connection
+                 :datamos-cfg/exchange-name)
+               ["" message]
+               destination)))))
+

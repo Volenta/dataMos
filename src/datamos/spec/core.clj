@@ -35,11 +35,17 @@
 (s/def ::named-graphs (s/map-of keyword? ::statement :conform-keys true :min-count 1))
 
 (s/def ::prefix (s/map-of keyword? string? :conform-keys true :min-count 1))
-(s/def ::triples ::statement)
-(s/def ::quads ::named-graphs)
 
 (s/def ::rdf-content
-  (s/keys :req-un [::prefix]
-          :opt-un [::triples ::quads]))
+  (s/or :prefixes (s/map-of :datamos/prefix ::prefix :conform-keys true :min-count 0 :max-count 1)
+        :triples (s/map-of :datamos/triples ::statement :conform-keys true :min-count 0 :max-count 1)
+        :quads (s/map-of :datamos/quads ::named-graphs :conform-keys true :min-count 0 :max-count 1)))
 
+(s/def ::logis-props
+  (s/keys :opt [:datamos-cfg/rcpt-fn]))
 
+(s/def ::logistics (s/map-of :datamos-cfg/logistic ::logis-props :conform-keys true :min-count 0 :max-count 1))
+
+(s/def ::message
+  (s/or :rdf ::rdf-content
+        :logis ::logistics))
