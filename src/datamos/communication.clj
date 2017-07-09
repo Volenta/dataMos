@@ -5,7 +5,7 @@
 
 (defn send-message
   [settings message]
-  (let [destination (get-in message [:datamos-cfg/logistic :datamos-cfg/rcpt-fn])]
+  (let [destination (get-in message [:datamos/logistic :datamos/rcpt-fn])]
     (apply lb/publish
            (dm/vector-connection->channel
              (conj

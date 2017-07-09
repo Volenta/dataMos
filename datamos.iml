@@ -43,6 +43,7 @@
     <orderEntry type="library" name="Leiningen: org.clojure/clojure:1.9.0-alpha17" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/core.specs.alpha:0.1.10" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/spec.alpha:0.1.123" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/test.check:0.10.0-alpha2" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/tools.namespace:0.2.11" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/tools.nrepl:0.2.12" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/tools.reader:0.10.0" level="project" />

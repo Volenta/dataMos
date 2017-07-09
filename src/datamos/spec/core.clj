@@ -3,15 +3,15 @@
             [clojure.spec.gen.alpha :as gen]
             [clojure.spec.test.alpha :as stest]))
 
-(s/def ::value string?)
-(s/def ::lang string?)
-(s/def ::type keyword?)
+(s/def :datamos/value string?)
+(s/def :datamos/lang string?)
+(s/def :datamos/type keyword?)
 
 (s/def ::literal-type
-  (s/keys :req-un [::value]
-          :opt-un [::type ::lang]))
+  (s/keys :req [:datamos/value]
+          :opt [:datamos/type :datamos/lang]))
 
-(s/def ::node-blank (s/map-of ::property ::object :conform-keys true))
+(s/def ::node-blank (s/map-of ::property ::object))
 (s/def ::coll (s/coll-of ::object :kind vector? :min-count 1))
 
 (s/def ::subject-types (s/or :uri keyword?
@@ -30,22 +30,20 @@
 (s/def ::property keyword?)                                 ;; Using property instead of predicate. Because Clojure already uses predicate in functions like s/explain
 (s/def ::object ::object-types)
 
-(s/def ::property-object (s/map-of ::property ::object :conform-keys true :min-count 1))
-(s/def ::statement (s/map-of ::subject ::property-object :conform-keys true :min-count 1))
-(s/def ::named-graphs (s/map-of keyword? ::statement :conform-keys true :min-count 1))
+(s/def ::property-object (s/map-of ::property ::object :min-count 1))
+(s/def ::statement (s/map-of ::subject ::property-object :min-count 1))
+(s/def ::named-graphs (s/map-of keyword? ::statement :min-count 1))
 
-(s/def ::prefix (s/map-of keyword? string? :conform-keys true :min-count 1))
+(s/def ::prefix (s/map-of keyword? string? :min-count 1))
 
 (s/def ::rdf-content
-  (s/or :prefixes (s/map-of :datamos/prefix ::prefix :conform-keys true :min-count 0 :max-count 1)
-        :triples (s/map-of :datamos/triples ::statement :conform-keys true :min-count 0 :max-count 1)
-        :quads (s/map-of :datamos/quads ::named-graphs :conform-keys true :min-count 0 :max-count 1)))
+  (s/or :prefixes (s/map-of #{:datamos/prefix} ::prefix :min-count 1)
+        :triples (s/map-of #{:datamos/triples} ::statement :min-count 1)
+        :quads (s/map-of #{:datamos/quads} ::named-graphs :min-count 1)))
 
 (s/def ::logis-props
-  (s/keys :opt [:datamos-cfg/rcpt-fn]))
-
-(s/def ::logistics (s/map-of :datamos-cfg/logistic ::logis-props :conform-keys true :min-count 0 :max-count 1))
+  (s/map-of #{:datamos/rcpt-fn} keyword?))
 
 (s/def ::message
-  (s/or :rdf ::rdf-content
-        :logis ::logistics))
+  (s/or :rdf (s/map-of #{:datamos/rdf-content} ::rdf-content)
+        :logis (s/map-of #{:datamos/logistic} ::logis-props)))

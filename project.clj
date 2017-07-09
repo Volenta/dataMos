@@ -9,4 +9,5 @@
                  [com.novemberain/langohr "3.7.0"]]
   :main ^:skip-aot datamos.core
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :profiles {:uberjar {:aot :all}
+             :dev {:dependencies [[org.clojure/test.check "0.10.0-alpha2"]]}})
