@@ -15,6 +15,7 @@
 ; TODO: Sent message function
 ; TODO: Receive message
 ; TODO: Sent config.
+; TODO: Build publish subscribe solution
 
 (declare close)
 

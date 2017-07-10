@@ -3,6 +3,20 @@
             [langohr [basic :as lb]]
             [datamos.util :as u]))
 
+; TODO - create compose message function, used to easily send test-messages
+
+
+(defn retrieve-sender
+  [settings]
+  (first (u/select-submap-values settings :datamos-cfg/component-uri)))
+
+(defn compose-message
+  [content sender]
+  {:datamos/logistic {:datamos/rcpt-fn :datamos-fn/config
+                      :datamos/sender sender}
+   :datamos/rdf-content {:datamos/prefix {}
+                         :datamos/triples content}})
+
 (defn send-message
   [settings message]
   (let [destination (get-in message [:datamos/logistic :datamos/rcpt-fn])]
@@ -13,5 +27,11 @@
                  settings
                  :datamos-cfg/low-level-connection
                  :datamos-cfg/exchange-name)
-               ["" message destination])))))
+               ["" message {:headers (conj {}
+                                           (mapv u/keyword->string
+                                                 [:datamos-cfg/component-fn destination]))}])))))
 
+(defn communicate
+  [settings content]
+  (send-message
+    settings (compose-message content (retrieve-sender settings))))

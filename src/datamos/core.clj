@@ -11,12 +11,10 @@
 
 (def core-identifiers
   {:datamos-cfg/component {:datamos-cfg/component-uri :datamos-fn/core
-                           :datamos-cfg/component-alias :datamos-fn/config}})
+                           :datamos-cfg/component-fn :datamos-fn/config}})
 
 (def config-identifiers
   {:datamos-cfg/queue {:datamos-cfg/queue-name "config.datamos-fn"}})
-
-
 
 (defn -main
   "Initializes datamos.core. Configures the exchange"
