@@ -1,7 +1,8 @@
 (ns datamos.core
   (:gen-class)
-  (:require [datamos.messaging :as dm]
-            [datamos.util :as u]))
+  (:require [datamos
+             [messaging :as dm]
+             [util :as u]]))
 
 (def component-settings
   (atom {}))

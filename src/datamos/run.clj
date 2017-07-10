@@ -1,7 +1,8 @@
 (ns datamos.run
   "Contains functions for starting and stopping datamos. Mostly to be used in REPL, for development purposes."
-  (:require [datamos.core :as dc]
-            [datamos.messaging :as dm]))
+  (:require [datamos
+             [core :as dc]
+             [messaging :as dm]]))
 
 (defn start
   []

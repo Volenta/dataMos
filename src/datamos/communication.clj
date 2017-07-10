@@ -1,10 +1,8 @@
 (ns datamos.communication
-  (:require [datamos.messaging :as dm]
-            [langohr [basic :as lb]]
-            [datamos.util :as u]))
-
-; TODO - create compose message function, used to easily send test-messages
-
+  (:require [datamos
+             [messaging :as dm]
+             [util :as u]]
+            [langohr [basic :as lb]]))
 
 (defn retrieve-sender
   [settings]

@@ -1,15 +1,17 @@
 (ns datamos.messaging
-  (:require [langohr.basic :as lb]
-            [langohr.channel :as lch]
-            [langohr.core :as rmq]
-            [langohr.queue :as lq]
-            [langohr.exchange :as le]
-            [langohr.consumers :as lc]
-            [taoensso.nippy :as nippy]
-            [datamos.util :as u]
-            [clojure.string :as str]
+  (:require [langohr
+             [basic :as lb]
+             [channel :as lch]
+             [core :as rmq]
+             [queue :as lq]
+             [exchange :as le]
+             [consumers :as lc]]
+            [clojure
+             [string :as str]]
             [datamos.spec.core :as dsc]
-            [clojure.spec.alpha :as s])
+            [datamos
+             [util :as u]]
+            [taoensso.nippy :as nippy])
   (:import [com.rabbitmq.client AlreadyClosedException]))
 
 ; TODO: Sent message function
@@ -86,7 +88,7 @@
         routing-args    (into {} (map #(mapv u/keyword->string %) routing-vals))
         header-matching {"x-match" "any"}
         args            {:arguments (conj routing-args header-matching)}
-        s (assoc-in settings [:datamos-cfg/queue :datamos-cfg/binding] args)]
+        s               (assoc-in settings [:datamos-cfg/queue :datamos-cfg/binding] args)]
     (provide-channel lq/bind
                      s
                      :datamos-cfg/low-level-connection
@@ -98,15 +100,15 @@
 (defn set-connection
   [settings]
   (let [conn (connection)
-        s {:datamos-cfg/connection {:datamos-cfg/low-level-connection conn}}]
+        s    {:datamos-cfg/connection {:datamos-cfg/low-level-connection conn}}]
     (u/deep-merge settings s)))
 
 (defn set-queue
   [settings]
   (let [queue-settings queue-conf
         qualified-name (u/give-qualified-name settings :datamos-cfg/component-uri)
-        queue-map {:datamos-cfg/queue {:datamos-cfg/queue-name qualified-name}}
-        s (u/deep-merge settings queue-map queue-settings)]
+        queue-map      {:datamos-cfg/queue {:datamos-cfg/queue-name qualified-name}}
+        s              (u/deep-merge settings queue-map queue-settings)]
     (provide-channel lq/declare
                      s
                      :datamos-cfg/low-level-connection
@@ -125,7 +127,7 @@
   "Creates the rabbitMQ exchange. Uses the values supplied. If not, it uses the default supplied values."
   [settings]
   (let [ex-settings exchange-conf
-        ex-config (u/deep-merge ex-settings settings)]
+        ex-config   (u/deep-merge ex-settings settings)]
     (provide-channel le/declare
                      ex-config
                      :datamos-cfg/low-level-connection

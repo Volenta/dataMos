@@ -1,6 +1,7 @@
 (ns datamos.util
   "Contains common utility functions"
-  (:require [clojure.string :as str]))
+  (:require [clojure
+             [string :as str]]))
 
 (defn deep-merge
   [& maps]
