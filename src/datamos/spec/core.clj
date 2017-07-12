@@ -3,13 +3,13 @@
             [clojure.spec.gen.alpha :as gen]
             [clojure.spec.test.alpha :as stest]))
 
-(s/def :datamos/value string?)
-(s/def :datamos/lang string?)
-(s/def :datamos/type keyword?)
+(s/def :dms-rdf/value string?)
+(s/def :dms-rdf/lang string?)
+(s/def :dms-rdf/type keyword?)
 
 (s/def ::literal-type
-  (s/keys :req [:datamos/value]
-          :opt [:datamos/type :datamos/lang]))
+  (s/keys :req [:dms-rdf/value]
+          :opt [:dms-rdf/type :dms-rdf/lang]))
 
 (s/def ::node-blank (s/map-of ::property ::object))
 (s/def ::coll (s/coll-of ::object :kind vector? :min-count 1))

@@ -21,10 +21,13 @@
 (def known-prefixes
   {:datamos "http://ld.datamos.org/data/id/"
    :dms-def "http://ld.datamos.org/data/def/"
+   :dms-rdf "http://ld.datamos.org/rdf/"
    :datamos-cfg "http://ld.datamos.org/config/id/"
    :dmscfg-def "http://ld.datamos.org/config/def/"
    :datamos-fn "http://ld.datamos.org/function/id/"
-   :dmsfn-def "http://ld.datamos.org/function/def/"})
+   :dmsfn-def "http://ld.datamos.org/function/def/"
+   :rdfs "http://www.w3.org/2000/01/rdf-schema#"
+   :rdf "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
 
 (def prefixes (atom {}))
 

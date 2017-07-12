@@ -2,7 +2,8 @@
   (:gen-class)
   (:require [datamos
              [messaging :as dm]
-             [util :as u]]))
+             [util :as u]
+             [rdf-content :as rdf]]))
 
 (def component-settings
   (atom {}))
