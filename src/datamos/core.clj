@@ -14,7 +14,7 @@
 (def core-identifiers
   {:datamos-cfg/component {:datamos-cfg/component-uri :datamos-fn/core
                            :datamos-cfg/component-fn  #{:datamos-fn/config
-                                                        :datamos-fn/sign-up}}})
+                                                        :datamos-fn/registry}}})
 
 (def config-identifiers
   {:datamos-cfg/queue {:datamos-cfg/queue-name "config.datamos-fn"}})
