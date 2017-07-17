@@ -41,14 +41,21 @@
     <orderEntry type="library" name="Leiningen: org.apache.httpcomponents/httpcore:4.4.5" level="project" />
     <orderEntry type="library" name="Leiningen: org.apache.httpcomponents/httpmime:4.5.2" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/clojure:1.9.0-alpha17" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/core.async:0.3.443" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/core.cache:0.6.5" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/core.memoize:0.5.9" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/core.specs.alpha:0.1.10" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/data.priority-map:0.0.7" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/spec.alpha:0.1.123" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/test.check:0.10.0-alpha2" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/tools.analyzer.jvm:0.7.0" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/tools.analyzer:0.6.9" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/tools.namespace:0.2.11" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/tools.nrepl:0.2.12" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/tools.reader:0.10.0" level="project" />
     <orderEntry type="library" name="Leiningen: org.flatland/classlojure:0.7.0" level="project" />
     <orderEntry type="library" name="Leiningen: org.iq80.snappy/snappy:0.4" level="project" />
+    <orderEntry type="library" name="Leiningen: org.ow2.asm/asm-all:4.2" level="project" />
     <orderEntry type="library" name="Leiningen: org.tcrawley/dynapath:0.2.3" level="project" />
     <orderEntry type="library" name="Leiningen: org.tukaani/xz:1.6" level="project" />
     <orderEntry type="library" name="Leiningen: potemkin:0.4.3" level="project" />

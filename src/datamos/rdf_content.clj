@@ -12,8 +12,6 @@
 ; component has function
 
 
-; TODO - select prefixes used in message
-
 
 (defn sign-up
   [settings]

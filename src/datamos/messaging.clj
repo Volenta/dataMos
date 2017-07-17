@@ -14,7 +14,6 @@
             [taoensso.nippy :as nippy])
   (:import [com.rabbitmq.client AlreadyClosedException]))
 
-; TODO: Sent message function
 ; TODO: Receive message
 ; TODO: Sent config.
 ; TODO: Build publish subscribe solution
@@ -60,6 +59,16 @@
   [setting-values]
   (update setting-values 0 #(channel %)))
 
+
+
+(comment (defmulti message-dispatcher
+           [ch metadata ^bytes payload]
+           ))
+
+(defn unfreeze-message
+  [payload]
+  (nippy/thaw payload))
+
 (defn ex-type
   ([] exchange-types)
   ([keyword]
@@ -73,9 +82,17 @@
     (rmq/close rmq-object) :closed
     (catch AlreadyClosedException e nil :connection-already-closed)))
 
+(defn open-channel
+  "Takes the function and its settings map and parameters. Opens a channel on top of an existing connection
+  for function execution. Channel is closed after use"
+  [f m & ks]
+  (let [params (vector-connection->channel
+                 (apply u/select-submap-values m ks))]
+    (apply f params)))
+
 (defn provide-channel
   "Takes the function and its settings map and parameters. Provides a channel on top of an existing connection
-  for function execution."
+  for function execution. Channel is closed after use"
   [f m & ks]
   (let [params (vector-connection->channel
                  (apply u/select-submap-values m ks))]
@@ -84,7 +101,7 @@
 
 (defn bind-queue
   [settings]
-  (let [routing-vals    (u/select-subkeys settings :datamos-cfg/component-uri :datamos-cfg/component-alias)
+  (let [routing-vals    (u/select-subkeys settings :datamos-cfg/component-uri :datamos-cfg/component-fn)
         routing-args    (into {} (map #(mapv u/keyword->string %) routing-vals))
         header-matching {"x-match" "any"}
         args            {:arguments (conj routing-args header-matching)}
@@ -121,7 +138,8 @@
   (provide-channel lq/declare
                    settings
                    :datamos-cfg/low-level-connection
-                   :datamos-cfg/queue-name))
+                   :datamos-cfg/queue-name)
+  settings)
 
 (defn set-exchange
   "Creates the rabbitMQ exchange. Uses the values supplied. If not, it uses the default supplied values."
@@ -178,14 +196,6 @@
   (u/deep-merge settings
                 (select-keys connection-settings [:datamos-cfg/connection])))
 
-(defn message-handler
-  [ch metadata ^bytes payload]
-  )
-
-(defn unfreeze-message
-  [payload]
-  (nippy/thaw payload))
-
 
 (defn start-config-queue
   [settings connection-settings]
@@ -204,6 +214,10 @@
       (set-queue)
       (bind-queue)))
 
+(defn stop-config-queue
+  [settings]
+  (stop-queue settings))
+
 (defn stop-messaging-connection
   "Supply map with component settings. Stops all of the messaging elements.
   Returns empty map."
@@ -214,3 +228,18 @@
         (stop-queue)
         (stop-connection))
     {}))
+
+(defn send-message
+  [settings message]
+  (let [destination (get-in message [:datamos/logistic :datamos/rcpt-fn])
+        m (nippy/freeze message)]
+    (apply lb/publish
+           (vector-connection->channel
+             (into
+               (u/select-submap-values
+                 settings
+                 :datamos-cfg/low-level-connection
+                 :datamos-cfg/exchange-name)
+               ["" m {:headers (conj {}
+                                     (mapv u/keyword->string
+                                           [:datamos-cfg/component-fn destination]))}])))))
