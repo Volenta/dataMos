@@ -30,6 +30,11 @@
   (let [mp (into {} (map m (keys m)))]
     (select-keys mp ks)))
 
+(defn select-subkeys+
+  [m & ks]
+  (let [mp (into {} (map m (keys m)))]
+    (select-keys mp ks)))
+
 (defn apply-submap-values
   "Gets values from map and applies function. Values will be applied in the order of the keys supplied."
   [f m & ks]
@@ -57,6 +62,14 @@
   (apply
     #(str (java.util.UUID/randomUUID) "." (name %) "." (namespace %))
     (select-submap-values settings k)))
+
+(defn select-sub-keys
+  "Returns a map containing only the submap entry, whose key is key, plus the parent key."
+  [maps key]
+  (into {}
+        (remove nil?
+                (map (fn [k v]
+                       (and (v key) [k (select-keys v [key])])) (keys maps) (vals maps)))))
 
 (defn replace-sub-value
   "Supply map, which contains submaps. Provide key, in submap, for which you want the value to change.

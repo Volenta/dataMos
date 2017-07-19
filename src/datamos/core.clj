@@ -19,7 +19,6 @@
 (def config-identifiers
   {:datamos-cfg/queue {:datamos-cfg/queue-name "config.datamos-fn"}})
 
-
 (defn -main
   "Initializes datamos.core. Configures the exchange"
   [& args]
@@ -31,4 +30,3 @@
           (dm/start-config-queue config-identifiers @component-settings))
   (swap! config-queue-settings u/deep-merge (dcom/open-local-channel @config-queue-settings))
   (swap! config-queue-settings u/deep-merge (dcom/listen @config-queue-settings)))
-

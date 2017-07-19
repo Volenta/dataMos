@@ -14,9 +14,7 @@
             [taoensso.nippy :as nippy])
   (:import [com.rabbitmq.client AlreadyClosedException]))
 
-; TODO: Receive message
 ; TODO: Sent config.
-; TODO: Build publish subscribe solution
 
 (declare close)
 
@@ -62,8 +60,8 @@
 
 
 (comment (defmulti message-dispatcher
-           [ch metadata ^bytes payload]
-           ))
+           [ch metadata ^bytes payload]))
+
 
 (defn unfreeze-message
   [payload]
