@@ -63,13 +63,13 @@
     #(str (java.util.UUID/randomUUID) "." (name %) "." (namespace %))
     (select-submap-values settings k)))
 
-(defn select-sub-keys
-  "Returns a map containing only the submap entry, whose key is key, plus the parent key."
-  [maps key]
+(defn select-sub-key
+  "Returns a map containing only the submap entry, whose key is key, plus the parent map with key."
+  [m key]
   (into {}
-        (remove nil?
-                (map (fn [k v]
-                       (and (v key) [k (select-keys v [key])])) (keys maps) (vals maps)))))
+        (map (fn [[k v]]
+               (and (v key) [k (find v key)]))
+             m)))
 
 (defn replace-sub-value
   "Supply map, which contains submaps. Provide key, in submap, for which you want the value to change.
