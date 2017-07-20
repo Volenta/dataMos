@@ -57,11 +57,15 @@
   [map [ks k]]
   (update-in map ks dissoc k))
 
-(defn give-qualified-name
-  [settings k]
-  (apply
-    #(str (java.util.UUID/randomUUID) "." (name %) "." (namespace %))
-    (select-submap-values settings k)))
+(defn component->queue-name
+  "Takes settings map, returns queue-name string. Queue-name is generated from the value for
+  key :datamos-cfg/component-uri, part of a submap in settings map"
+  [settings]
+  (let [[v] (select-submap-values settings :datamos-cfg/component-uri)
+        ns (namespace v)
+        re #"(^[^+]+)\+.+\+(.*)$"
+        [t i] (rest (re-matches re (name v)))]
+    (str i "." t "." ns)))
 
 (defn select-sub-key
   "Returns a map containing only the submap entry, whose key is key, plus the parent map with key."

@@ -99,7 +99,7 @@
 
 (defn bind-queue
   [settings]
-  (let [routing-vals    (u/select-subkeys settings :datamos-cfg/component-uri :datamos-cfg/component-fn)
+  (let [routing-vals    (u/select-subkeys settings :datamos-cfg/component-type :datamos-cfg/component-fn)
         routing-args    (into {} (map #(mapv u/keyword->string %) routing-vals))
         header-matching {"x-match" "any"}
         args            {:arguments (conj routing-args header-matching)}
@@ -121,7 +121,7 @@
 (defn set-queue
   [settings]
   (let [queue-settings queue-conf
-        qualified-name (u/give-qualified-name settings :datamos-cfg/component-uri)
+        qualified-name (u/component->queue-name settings)
         queue-map      {:datamos-cfg/queue {:datamos-cfg/queue-name qualified-name}}
         s              (u/deep-merge settings queue-map queue-settings)]
     (provide-channel lq/declare
