@@ -12,9 +12,21 @@
   "Default settings for the component consuming messages from the queue"
   {:auto-ack true :exclusive false})
 
+(defn generate-qualified-uri
+  "Return unique uri, based on type-kw."
+  [type-kw]
+  (keyword (str (namespace type-kw) "/" (name type-kw) "+dms-fn+" (java.util.UUID/randomUUID))))
+
+(defn set-component
+  "Returns component settings. With component-type, component-fn and component-uri as a submap of :datamos-cfg/component."
+  [type-kw fn-kw]
+  {:datamos-cfg/component {:datamos-cfg/component-type type-kw
+                           :datamos-cfg/component-fn fn-kw
+                           :datamos-cfg/component-uri (generate-qualified-uri type-kw)}})
+
 (defn retrieve-sender
   [settings]
-  (first (u/select-submap-values settings :datamos-cfg/component-uri)))
+  (first (u/select-submap-values settings :datamos-cfg/component-type)))
 
 (defn compose-message
   [settings content]

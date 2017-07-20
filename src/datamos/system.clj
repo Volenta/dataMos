@@ -20,8 +20,8 @@
 
 (defn stop
   []
-  (let [initial-settings @dc/component-settings]
-    (reset! dc/component-settings
+  (let [initial-settings @dc/local-settings]
+    (reset! dc/local-settings
             (dm/stop-messaging-connection initial-settings))
     (dcom/close-local-channel initial-settings)))
 
