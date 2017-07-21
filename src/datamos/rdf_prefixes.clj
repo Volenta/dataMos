@@ -18,7 +18,15 @@
   reference = The unique id, to refer to. Supply when {type} = id. Otherwise leave it out.
 
   Prefixes refer to URI's up untill the last slash ('/') So prefixes only refer to:
-  http:// {domain} / {category} / {type} /")
+  http:// {domain} / {category} / {type} /"
+  (:gen-class)
+  (:require [datamos
+             [messaging :as dm]
+             [communication :as dcom]
+             [util :as u]
+             [rdf-content :as rdf]
+             [rdf-prefixes-vars :refer :all]]
+            [clojure.repl :refer :all]))
 
 (def known-prefixes
   {:datamos "http://ld.datamos.org/data/id/"
@@ -31,8 +39,20 @@
    :rdfs "http://www.w3.org/2000/01/rdf-schema#"
    :rdf "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
 
-(def prefixes (atom {}))
+(defn get-prefixes
+  [rdf-map]
+  (select-keys @prefixes
+               (map keyword
+                    (set (keep namespace
+                               (filter keyword?
+                                       (tree-seq coll? seq
+                                                 rdf-map)))))))
 
-(defn add-known-prefixes
-  []
+(defn -main
+  "Initializes datamos.core. Configures the exchange"
+  [& args]
+  (reset! local-settings
+          (dm/start-messaging-connection (dcom/set-component :datamos-fn/core :datamos-fn/prefix)))
+  (swap! local-settings u/deep-merge (dcom/open-local-channel @local-settings))
+  (swap! local-settings u/deep-merge (dcom/listen @local-settings))
   (reset! prefixes known-prefixes))

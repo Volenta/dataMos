@@ -4,14 +4,9 @@
              [messaging :as dm]
              [communication :as dcom]
              [util :as u]
-             [rdf-content :as rdf]]
+             [rdf-content :as rdf]
+             [core-vars :refer :all]]
             [clojure.repl :refer :all]))
-
-(def local-settings
-  (atom {}))
-
-(def config-queue-settings
-  (atom {}))
 
 (def config-identifiers
   {:datamos-cfg/queue {:datamos-cfg/queue-name "config.datamos-fn"}})

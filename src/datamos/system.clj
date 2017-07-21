@@ -1,6 +1,7 @@
 (ns datamos.system
   (:require [datamos
              [core :as dc]
+             [core-vars :as dcv]
              [messaging :as dm]
              [communication :as dcom]]))
 
@@ -20,8 +21,8 @@
 
 (defn stop
   []
-  (let [initial-settings @dc/local-settings]
-    (reset! dc/local-settings
+  (let [initial-settings @dcv/local-settings]
+    (reset! dcv/local-settings
             (dm/stop-messaging-connection initial-settings))
     (dcom/close-local-channel initial-settings)))
 

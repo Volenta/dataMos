@@ -7,7 +7,8 @@
              [exchange :as le]
              [consumers :as lc]]
             [clojure
-             [string :as str]]
+             [string :as str]
+             [repl :refer :all]]
             [datamos.spec.core :as dsc]
             [datamos
              [util :as u]]
@@ -57,12 +58,6 @@
   [setting-values]
   (update setting-values 0 #(channel %)))
 
-
-
-(comment (defmulti message-dispatcher
-           [ch metadata ^bytes payload]))
-
-
 (defn unfreeze-message
   [payload]
   (nippy/thaw payload))
@@ -99,7 +94,10 @@
 
 (defn bind-queue
   [settings]
-  (let [routing-vals    (u/select-subkeys settings :datamos-cfg/component-type :datamos-cfg/component-fn)
+  (let [routing-vals    (u/select-subkeys settings
+                                          :datamos-cfg/component-type
+                                          :datamos-cfg/component-fn
+                                          :datamos-cfg/component-uri)
         routing-args    (into {} (map #(mapv u/keyword->string %) routing-vals))
         header-matching {"x-match" "any"}
         args            {:arguments (conj routing-args header-matching)}
@@ -226,6 +224,18 @@
         (stop-queue)
         (stop-connection))
     {}))
+
+(defn request-config
+  [settings message]
+  (let [destination (get-in message [:datamos/logistic :datamos/rcpt-fn])
+        m (nippy/freeze message)]
+    (apply lb/publish
+           (vector-connection->channel
+             (into
+               (u/select-submap-values
+                 settings
+                 :datamos-cfg/low-level-connection)
+               ["" destination m])))))
 
 (defn send-message
   [settings message]

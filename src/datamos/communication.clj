@@ -1,7 +1,8 @@
 (ns datamos.communication
   (:require [datamos
              [messaging :as dm]
-             [util :as u]]
+             [util :as u]
+             [rdf-content :as rdf]]
             [langohr
              [consumers :as lc]]
             [clojure.core.async :as async]
@@ -22,19 +23,7 @@
   [type-kw fn-kw]
   {:datamos-cfg/component {:datamos-cfg/component-type type-kw
                            :datamos-cfg/component-fn fn-kw
-                           :datamos-cfg/component-uri (generate-qualified-uri type-kw)}})
-
-(defn retrieve-sender
-  [settings]
-  (first (u/select-submap-values settings :datamos-cfg/component-type)))
-
-(defn compose-message
-  [settings content]
-  (let [s (retrieve-sender settings)]
-    {:datamos/logistic    {:datamos/rcpt-fn :datamos-fn/registry
-                           :datamos/sender s}
-     :datamos/rdf-content {:datamos/prefix  {}
-                           :datamos/triples content}}))
+                           :datamos-cfg/component-uri (generate-qualified-uri fn-kw)}})
 
 (defn open-local-channel
   [settings]
@@ -42,10 +31,17 @@
     {:datamos-cfg/listener {:datamos-cfg/listen-channel ch}}))
 
 (defn speak
-  [settings content]
+  [settings content rcpt]
   (as-> settings v
-      (compose-message v content)
+      (rdf/compose-rdf-message v content rcpt)
       (dm/send-message settings v)))
+
+(defn speak-sign-up
+  "Send message to sign-up functionality and retrieve configuration. Function will deliver messages to the config.datamos-fn
+  queue. Use for initialization of a component."
+  [settings]
+  (dm/request-config settings
+    (rdf/compose-rdf-message settings (rdf/sign-up settings) "config.datamos-fn")))
 
 (defn channel-message
   [channel]
