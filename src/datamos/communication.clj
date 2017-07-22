@@ -9,6 +9,16 @@
             [clojure.core.async.impl.protocols :as async-p]
             [taoensso.nippy :as nippy]))
 
+(def dev-tst (atom true))
+
+(defn stop-thread
+  []
+  (reset! dev-tst false))
+
+(defn run-thread
+  []
+  (reset! dev-tst true))
+
 (def default-consumer-settings
   "Default settings for the component consuming messages from the queue"
   {:auto-ack true :exclusive false})
@@ -69,10 +79,9 @@
 (defn response
   [settings function]
   (let [chan (get-local-channel settings)]
-    (async/go (while true
+    (async/go (while (and true @dev-tst)
                 (let [[ch meta payload] (async/<! chan)]
-                  (when (not (async-p/closed? chan))
-                    (function ch meta (nippy/thaw payload))))))))
+                  (function ch meta (nippy/thaw payload)))))))
 
 (defn close-local-channel
   [settings]

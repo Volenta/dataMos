@@ -6,3 +6,6 @@
 
 (def config-queue-settings
   (atom {}))
+
+(def register
+  (atom {}))
