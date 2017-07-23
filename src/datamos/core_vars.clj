@@ -9,3 +9,6 @@
 
 (def register
   (atom {}))
+
+(def global-config
+  (atom {}))

@@ -25,16 +25,6 @@
             []
             ks)))
 
-(defn select-subkeys
-  [m & ks]
-  (let [mp (into {} (map m (keys m)))]
-    (select-keys mp ks)))
-
-(defn select-subkeys+
-  [m & ks]
-  (let [mp (into {} (map m (keys m)))]
-    (select-keys mp ks)))
-
 (defn apply-submap-values
   "Gets values from map and applies function. Values will be applied in the order of the keys supplied."
   [f m & ks]
@@ -67,13 +57,26 @@
         [t i] (rest (re-matches re (name v)))]
     (str i "." t "." ns)))
 
-(defn select-sub-key
+(defn select-subkeys
+  "Returns map with keys and values, as found in submaps of m"
+  [m & ks]
+  (let [mp (into {} (map m (keys m)))]
+    (select-keys mp ks)))
+
+(defn select-subkey+
   "Returns a map containing only the submap entry, whose key is key, plus the parent map with key."
   [m key]
   (into {}
         (map (fn [[k v]]
-               (and (v key) [k (find v key)]))
+               (and (v key) [k (conj {} (find v key))]))
              m)))
+
+(defn select-subkeys+
+  "Returns map with keys and values, as found in submaps of m"
+  [m & ks]
+  (apply deep-merge
+         (map #(select-subkey+ m %)
+              ks)))
 
 (defn replace-sub-value
   "Supply map, which contains submaps. Provide key, in submap, for which you want the value to change.

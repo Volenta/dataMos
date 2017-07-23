@@ -2,7 +2,6 @@
 (ns datamos.rdf-function
   "Contains functions working on RDF data-sets")
 
-
 (defn predicate-filter
   "Returns message filtered by supplied set of rdf predicates."
   [message predicates]
@@ -12,3 +11,4 @@
                         (keep (fn [[x y]]
                                 (and (predicates x) {x y})) v))])
              message)))
+
