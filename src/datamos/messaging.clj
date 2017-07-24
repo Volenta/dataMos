@@ -56,7 +56,7 @@
 
 (defn vector-connection->channel
   [setting-values]
-  (update setting-values 0 #(channel %)))
+  (update setting-values 0 channel))
 
 (defn unfreeze-message
   [payload]

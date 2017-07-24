@@ -2,12 +2,16 @@
   (:require [datamos
              [messaging :as dm]
              [util :as u]
-             [rdf-content :as rdf]]
+             [rdf-content :as rdf-cnt]
+             [msg-content :as msg-cnt]]
             [langohr
              [consumers :as lc]]
             [clojure.core.async :as async]
             [clojure.core.async.impl.protocols :as async-p]
             [taoensso.nippy :as nippy]))
+
+; TODO : Reduce speak and speak-rdf to speak. Add parameter to speak to specifiy what kind of content is send.
+;        Allow function to follow a different path based on the value supplied for this parameter.
 
 (def dev-tst (atom true))
 
@@ -41,17 +45,22 @@
     {:datamos-cfg/listener {:datamos-cfg/listen-channel ch}}))
 
 (defn speak
-  [settings content rcpt]
-  (as-> settings v
-      (rdf/compose-rdf-message v content rcpt)
-      (dm/send-message settings v)))
+  ([settings content rcpt] (settings content rcpt :rdf))
+  ([settings content rcpt msg-format]
+   (let [cm (case msg-format
+                  :rdf rdf-cnt/compose-rdf-message
+                  :config msg-cnt/compose-message)]
+     (println "sending message to:" rcpt "Message format:" msg-format)
+     (as-> settings v
+           (cm v content rcpt)
+           (dm/send-message settings v)))))
 
 (defn speak-sign-up
   "Send message to sign-up functionality and retrieve configuration. Function will deliver messages to the config.datamos-fn
   queue. Use for initialization of a component."
   [settings]
   (dm/request-config settings
-    (rdf/compose-rdf-message settings (rdf/sign-up settings) "config.datamos-fn")))
+                     (rdf-cnt/compose-rdf-message settings (rdf-cnt/sign-up settings) "config.datamos-fn")))
 
 (defn channel-message
   [channel]
