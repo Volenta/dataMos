@@ -1,33 +1,22 @@
 (ns datamos.system
-  (:require [datamos
-             [core :as dc]
-             [core-vars :as dcv]
-             [messaging :as dm]
-             [communication :as dcom]]))
+  (:require [mount.core :as mnt :refer [stop start]]
+            [clojure.tools.namespace :as ctn]
+            [clojure.tools.namespace.repl :refer [refresh]]))
 
-(defn clear-repl
-  []
-  (map #(ns-unmap *ns* %) (keys (ns-interns *ns*))))
-
-(defn remove-symbol
-  [symbol]
-  (ns-unmap *ns* symbol))
 
 ; --- Stop & Start system
 
-(defn start
+(defn go
   []
-  (dc/-main))
+  (start)
+  :ready)
 
-(defn stop
-  []
-  (let [initial-settings @dcv/local-settings]
-    (reset! dcv/local-settings
-            (dm/stop-messaging-connection initial-settings))
-    (dcom/close-local-channel initial-settings)))
-
-(defn restart
+(defn stp
   []
   (stop)
-  (Thread/sleep 500)
-  (start))
+  :clear)
+
+(defn reset
+  []
+  (stop)
+  (refresh :after 'sys/go))

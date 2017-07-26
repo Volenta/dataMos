@@ -50,9 +50,4 @@
 
 (defn -main
   "Initializes datamos.core. Configures the exchange"
-  [& args]
-  (reset! local-settings
-          (dm/start-messaging-connection (dcom/set-component :datamos-fn/core :datamos-fn/prefix)))
-  (swap! local-settings u/deep-merge (dcom/open-local-channel @local-settings))
-  (swap! local-settings u/deep-merge (dcom/listen @local-settings))
-  (reset! prefixes known-prefixes))
+  [& args])

@@ -51,7 +51,7 @@
   "Takes settings map, returns queue-name string. Queue-name is generated from the value for
   key :datamos-cfg/component-uri, part of a submap in settings map"
   [settings]
-  (let [[v] (select-submap-values settings :datamos-cfg/component-uri)
+  (let [v (:datamos-cfg/component-uri settings)
         ns (namespace v)
         re #"(^[^+]+)\+.+\+(.*)$"
         [t i] (rest (re-matches re (name v)))]

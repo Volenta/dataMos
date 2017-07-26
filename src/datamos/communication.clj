@@ -3,46 +3,32 @@
              [messaging :as dm]
              [util :as u]
              [rdf-content :as rdf-cnt]
-             [msg-content :as msg-cnt]]
+             [msg-content :as msg-cnt]
+             [component-fn :as cfn]]
             [langohr
-             [consumers :as lc]]
+             [consumers :as lc]
+             [basic :as lb]]
+            [clojure.repl :refer :all]
             [clojure.core.async :as async]
             [clojure.core.async.impl.protocols :as async-p]
-            [taoensso.nippy :as nippy]))
+            [taoensso.nippy :as nippy]
+            [mount.core :as mnt :refer [defstate]]))
 
 ; TODO : Reduce speak and speak-rdf to speak. Add parameter to speak to specifiy what kind of content is send.
 ;        Allow function to follow a different path based on the value supplied for this parameter.
-
-(def dev-tst (atom true))
-
-(defn stop-thread
-  []
-  (reset! dev-tst false))
-
-(defn run-thread
-  []
-  (reset! dev-tst true))
 
 (def default-consumer-settings
   "Default settings for the component consuming messages from the queue"
   {:auto-ack true :exclusive false})
 
-(defn generate-qualified-uri
-  "Return unique uri, based on type-kw."
-  [type-kw]
-  (keyword (str (namespace type-kw) "/" (name type-kw) "+dms-fn+" (java.util.UUID/randomUUID))))
-
-(defn set-component
-  "Returns component settings. With component-type, component-fn and component-uri as a submap of :datamos-cfg/component."
-  [type-kw fn-kw]
-  {:datamos-cfg/component {:datamos-cfg/component-type type-kw
-                           :datamos-cfg/component-fn fn-kw
-                           :datamos-cfg/component-uri (generate-qualified-uri fn-kw)}})
-
-(defn open-local-channel
-  [settings]
+(defn channel
+  []
   (let [ch (async/chan)]
-    {:datamos-cfg/listener {:datamos-cfg/listen-channel ch}}))
+    {:datamos-cfg/listen-channel ch}))
+
+(defstate local-channel
+          :start (channel)
+          :stop (async/close! (:datamos-cfg/listen-channel local-channel)))
 
 (defn speak
   ([settings content rcpt] (settings content rcpt :rdf))
@@ -63,36 +49,51 @@
                      (rdf-cnt/compose-rdf-message settings (rdf-cnt/sign-up settings) "config.datamos-fn")))
 
 (defn channel-message
-  [channel]
-  (fn [ch meta ^bytes payload]
-    (async/put! channel [ch meta payload])))
-
-(defn get-local-channel
-  [settings]
-  (get-in settings [:datamos-cfg/listener :datamos-cfg/listen-channel]))
+  []
+  (let [chan (:datamos-cfg/listen-channel local-channel)]
+    (fn [ch meta ^bytes payload]
+      (async/put! chan [ch meta payload]))))
 
 (defn listen
+  []
+  (let [dp  {:datamos-cfg/dispatch channel-message}
+        cset {:datamos-cfg/consumer-settings default-consumer-settings}
+        q dm/queue
+        ch {:datamos-cfg/remote-channel (dm/remote-channel)}
+        s (merge dp cset q ch)
+        tag  (apply lc/subscribe
+                    (mapv
+                      s
+                      [:datamos-cfg/remote-channel
+                       :datamos-cfg/queue-name
+                       :datamos-cfg/dispatch
+                       :datamos-cfg/consumer-settings]))]
+    (merge s {:datamos-cfg/listener-tag tag})))
+
+(defn close-listen
   [settings]
-  (let [chan (get-local-channel settings)
-        tag  (apply
-               lc/subscribe
-               (dm/vector-connection->channel
-                 (into
-                   (u/select-submap-values settings
-                                           :datamos-cfg/low-level-connection
-                                           :datamos-cfg/queue-name)
-                   [(channel-message chan)
-                    default-consumer-settings])))]
-    {:datamos-cfg/listener {:datamos-cfg/listener-tag tag}}))
+  (apply lb/cancel
+         (mapv
+           settings
+           [:datamos-cfg/remote-channel
+            :datamos-cfg/listener-tag]))
+  (dm/close (:datamos-cfg/remote-channel settings)))
+
+(defstate listener
+          :start (listen)
+          :stop (close-listen listener))
 
 (defn response
-  [settings function]
-  (let [chan (get-local-channel settings)]
-    (async/go (while (and true @dev-tst)
-                (let [[ch meta payload] (async/<! chan)]
+  []
+  (let [function  (:datamos-cfg/response-fn cfn/component)]
+    (async/go (while true
+                (let [[ch meta payload] (async/<! (:datamos-cfg/listen-channel local-channel))]
                   (function ch meta (nippy/thaw payload)))))))
 
-(defn close-local-channel
-  [settings]
-  (let [chan (get-local-channel settings)]
-    (async/close! chan)))
+(defn stop-response
+  [async-channel]
+  (async/close! async-channel))
+
+(defstate responder
+          :start (response)
+          :stop (stop-response responder))

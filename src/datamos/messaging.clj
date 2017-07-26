@@ -11,13 +11,13 @@
              [repl :refer :all]]
             [datamos.spec.core :as dsc]
             [datamos
-             [util :as u]]
-            [taoensso.nippy :as nippy])
+             [util :as u]
+             [component-fn :as cfn]]
+            [taoensso.nippy :as nippy]
+            [mount.core :as mnt :refer [defstate]])
   (:import [com.rabbitmq.client AlreadyClosedException]))
 
 ; TODO: Sent config.
-
-(declare close)
 
 (def connection-object-set
   #{com.novemberain.langohr.Connection
@@ -38,25 +38,13 @@
 (def exchange-conf
   (let [ex-type     (:datamos-cfg/headers exchange-types)
         ex-settings default-exchange-settings]
-    {:datamos-cfg/exchange {:datamos-cfg/exchange-name     "dataMos-ex"
-                            :datamos-cfg/exchange-type     ex-type
-                            :datamos-cfg/exchange-settings ex-settings}}))
+    {:datamos-cfg/exchange-name     "dataMos-ex"
+     :datamos-cfg/exchange-type     ex-type
+     :datamos-cfg/exchange-settings ex-settings}))
 
 (def queue-conf
   (let [qu-settings default-queue-settings]
-    {:datamos-cfg/queue {:datamos-cfg/queue-settings qu-settings}}))
-
-(defn connection
-  []
-  (rmq/connect))
-
-(defn channel
-  [connection]
-  (lch/open connection))
-
-(defn vector-connection->channel
-  [setting-values]
-  (update setting-values 0 channel))
+    {:datamos-cfg/queue-settings qu-settings}))
 
 (defn unfreeze-message
   [payload]
@@ -70,160 +58,113 @@
 (defn close
   "Close a rabbitmq channel or connection. Returns :closed if succesfull.
   Returns :already-closed in case of an Already Closed Exception"
-  [rmq-object]
-  (try
-    (rmq/close rmq-object) :closed
-    (catch AlreadyClosedException e nil :connection-already-closed)))
+  ([rmq-object] (try
+                  (rmq/close rmq-object) :closed
+                  (catch AlreadyClosedException e nil :connection-already-closed)))
+  ([rmq-object return]
+   (try
+     (rmq/close rmq-object) :closed
+     (catch AlreadyClosedException e nil :connection-already-closed))
+   return))
 
-(defn open-channel
-  "Takes the function and its settings map and parameters. Opens a channel on top of an existing connection
-  for function execution. Channel is closed after use"
-  [f m & ks]
-  (let [params (vector-connection->channel
-                 (apply u/select-submap-values m ks))]
-    (apply f params)))
+(defstate ^{:on-reload :noop} connection
+          :start (rmq/connect)
+          :stop (close connection))
+
+(defn remote-channel
+  []
+  (lch/open connection))
+
+(defn vector-connection->channel
+  [setting-values]
+  (update setting-values 0 remote-channel))
 
 (defn provide-channel
-  "Takes the function and its settings map and parameters. Provides a channel on top of an existing connection
+  "Takes the function and its settings map and a collection of keys. Provides a channel on top of an existing connection
   for function execution. Channel is closed after use"
-  [f m & ks]
-  (let [params (vector-connection->channel
-                 (apply u/select-submap-values m ks))]
-    (apply f params)
-    (close (first params))))
-
-(defn bind-queue
-  [settings]
-  (let [routing-vals    (u/select-subkeys settings
-                                          :datamos-cfg/component-type
-                                          :datamos-cfg/component-fn
-                                          :datamos-cfg/component-uri)
-        routing-args    (into {} (map #(mapv u/keyword->string %) routing-vals))
-        header-matching {"x-match" "any"}
-        args            {:arguments (conj routing-args header-matching)}
-        s               (assoc-in settings [:datamos-cfg/queue :datamos-cfg/binding] args)]
-    (provide-channel lq/bind
-                     s
-                     :datamos-cfg/low-level-connection
-                     :datamos-cfg/queue-name
-                     :datamos-cfg/exchange-name
-                     :datamos-cfg/binding)
-    s))
-
-(defn set-connection
-  [settings]
-  (let [conn (connection)
-        s    {:datamos-cfg/connection {:datamos-cfg/low-level-connection conn}}]
-    (u/deep-merge settings s)))
+  [f m ks]
+  (let [params (mapv m ks)
+        chan   (remote-channel)]
+    (->> (apply f chan params)
+         (close chan))))
 
 (defn set-queue
-  [settings]
-  (let [queue-settings queue-conf
-        qualified-name (u/component->queue-name settings)
-        queue-map      {:datamos-cfg/queue {:datamos-cfg/queue-name qualified-name}}
-        s              (u/deep-merge settings queue-map queue-settings)]
+  "Create and name an RabbitMQ Queue. Return map with queue settings"
+  []
+  (let [qualified-name (u/component->queue-name cfn/component)
+        queue-map      {:datamos-cfg/queue-name qualified-name}
+        s              (u/deep-merge queue-map queue-conf)]
     (provide-channel lq/declare
                      s
-                     :datamos-cfg/low-level-connection
-                     :datamos-cfg/queue-name
-                     :datamos-cfg/queue-settings)
+                     [:datamos-cfg/queue-name
+                      :datamos-cfg/queue-settings])
     s))
+
+(defn remove-queue
+  "Removes queue based on :datamos-cfg/queue-name key as supplied by settings map."
+  [settings]
+  (provide-channel lq/delete settings [:datamos-cfg/queue-name]))
+
+(defstate ^{:on-reload :noop} queue
+          :start (set-queue)
+          :stop (remove-queue queue))
 
 (defn set-config-queue
   [settings]
   (provide-channel lq/declare
                    settings
-                   :datamos-cfg/low-level-connection
-                   :datamos-cfg/queue-name)
+                   [:datamos-cfg/low-level-connection
+                    :datamos-cfg/queue-name])
   settings)
 
 (defn set-exchange
   "Creates the rabbitMQ exchange. Uses the values supplied. If not, it uses the default supplied values."
-  [settings]
-  (let [ex-settings exchange-conf
-        ex-config   (u/deep-merge ex-settings settings)]
-    (provide-channel le/declare
-                     ex-config
-                     :datamos-cfg/low-level-connection
-                     :datamos-cfg/exchange-name
-                     :datamos-cfg/exchange-type
-                     :datamos-cfg/exchange-settings)
-    ex-config))
+  []
+  (provide-channel le/declare
+                   exchange-conf
+                   [:datamos-cfg/exchange-name
+                    :datamos-cfg/exchange-type
+                    :datamos-cfg/exchange-settings])
+  exchange-conf)
 
-(defn close-connection-by-objectset
-  "Given a map, takes a submap supplied by key. Filters for keys which values contain objects from the objectset.
-  Closes the connections. Removes keys and values from the map. Returns the remainder of the map."
-  [m k oset]
-  (reduce u/remove-nested-key
-          m
-          (map (fn [x y]
-                 (close (y (k m)))
-                 [x y])
-               (repeat [k])
-               (keys
-                 (filter #(oset (type (% 1))) (k m))))))
-
-(defn stop-queue
-  [settings]
-  (provide-channel lq/delete
-                   settings
-                   :datamos-cfg/low-level-connection
-                   :datamos-cfg/queue-name)
-  (dissoc settings :datamos-cfg/queue))
-
-(defn stop-exchange
+(defn remove-exchange
+  "Removes the RabbitMQ Exchange"
   [settings]
   (provide-channel le/delete
                    settings
-                   :datamos-cfg/low-level-connection
-                   :datamos-cfg/exchange-name)
-  (dissoc settings :datamos-cfg/exchange))
+                   [:datamos-cfg/exchange-name]))
 
-(defn stop-connection
-  "Stop channel and connection to rabbitMQ broker. Supply settings map which contains the applicable connections"
+(defstate ^{:on-reload :noop} exchange
+          :start (set-exchange)
+          :stop (remove-exchange exchange))
+
+(defn bind-queue
+  []
+  (let [routing-vals    (select-keys cfn/component
+                                     [:datamos-cfg/component-type
+                                      :datamos-cfg/component-fn
+                                      :datamos-cfg/component-uri])
+        routing-args    (into {} (map #(mapv u/keyword->string %) routing-vals))
+        header-matching {"x-match" "any"}
+        args            {:arguments (conj routing-args header-matching)}
+        s               (merge exchange (assoc queue :datamos-cfg/binding args))]
+    (provide-channel lq/bind
+                     s
+                     [:datamos-cfg/queue-name
+                      :datamos-cfg/exchange-name
+                      :datamos-cfg/binding])
+    s))
+
+(defn remove-binding
   [settings]
-  (close-connection-by-objectset settings :datamos-cfg/connection connection-object-set)
-  (dissoc settings :datamos-cfg/connection))
+  (provide-channel lq/unbind
+                   settings
+                   [:datamos-cfg/queue-name
+                    :datamos-cfg/exchange-name]))
 
-(defn reuse-component-connection
-  "Provide two maps. Settings, with the settings of the element.
-  Connection-settings a map which contains the connection settings to be reused"
-  [settings connection-settings]
-  (u/deep-merge settings
-                (select-keys connection-settings [:datamos-cfg/connection])))
-
-
-(defn start-config-queue
-  [settings connection-settings]
-  (-> settings
-      (reuse-component-connection connection-settings)
-      (set-config-queue)))
-
-
-(defn start-messaging-connection
-  "Supply map with component specific settings. Starts messaging elements. Returns map
-  with settings, for each of the elements"
-  [settings]
-  (-> settings
-      (set-connection)
-      (set-exchange)
-      (set-queue)
-      (bind-queue)))
-
-(defn stop-config-queue
-  [settings]
-  (stop-queue settings))
-
-(defn stop-messaging-connection
-  "Supply map with component settings. Stops all of the messaging elements.
-  Returns empty map."
-  [settings]
-  (do
-    (-> settings
-        (stop-exchange)
-        (stop-queue)
-        (stop-connection))
-    {}))
+(defstate ^{:on-reload :noop} bind
+          :start (bind-queue)
+          :stop (remove-binding bind))
 
 (defn request-config
   [settings message]

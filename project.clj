@@ -7,7 +7,9 @@
                  [org.clojure/core.async "0.3.443"]
                  [http-kit "2.2.0"]
                  [com.taoensso/nippy "2.13.0"]
-                 [com.novemberain/langohr "3.7.0"]]
+                 [com.novemberain/langohr "3.7.0"]
+                 [mount "0.1.11"]
+                 [org.clojure/tools.namespace "0.2.11"]]
   :main ^:skip-aot datamos.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}
