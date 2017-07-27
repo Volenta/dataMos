@@ -27,8 +27,7 @@
     {:datamos-cfg/listen-channel ch}))
 
 (defstate local-channel
-          :start (channel)
-          :stop (async/close! (:datamos-cfg/listen-channel local-channel)))
+          :start (channel))
 
 (defn speak
   ([settings content rcpt] (settings content rcpt :rdf))
@@ -90,10 +89,7 @@
                 (let [[ch meta payload] (async/<! (:datamos-cfg/listen-channel local-channel))]
                   (function ch meta (nippy/thaw payload)))))))
 
-(defn stop-response
-  [async-channel]
-  (async/close! async-channel))
 
 (defstate responder
           :start (response)
-          :stop (stop-response responder))
+          :stop (async/close! responder))
