@@ -21,10 +21,10 @@
 
 
 (defn sign-up
-  [settings]
-  (let [values (u/select-submap-values settings
-                                       :datamos-cfg/component-uri
-                                       :datamos-cfg/component-fn)]
+  [component-settings]
+  (let [values (mapv component-settings
+                     [:datamos-cfg/component-uri
+                      :datamos-cfg/component-fn])]
     {(first values) {:rdf/type         :dms-def/component
                      :dms-def/requires :dms-def/configuration
                      :rdfs/label (name (last values))
@@ -34,8 +34,8 @@
   "Returns full message, with values for :datamos/logistic and :datamos/rdf-content.
   Settings is used to retrieve sender. Content is the RDF message to be sent. RCPT is the recepient of the message.
   RCPT is a datamos function defined as a keyword. Example :datamos-fn/registry"
-  [settings content rcpt]
-  (let [s (msg-cnt/retrieve-sender settings)]
+  [component-settings content rcpt]
+  (let [s (msg-cnt/retrieve-sender component-settings)]
     {:datamos/logistic    {:datamos/rcpt-fn rcpt
                            :datamos/sender s}
      :datamos/rdf-content {:datamos/prefix  {}

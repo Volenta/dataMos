@@ -12,7 +12,7 @@
             [datamos.spec.core :as dsc]
             [datamos
              [util :as u]
-             [component-fn :as cfn]]
+             [base :as base]]
             [taoensso.nippy :as nippy]
             [mount.core :as mnt :refer [defstate]])
   (:import [com.rabbitmq.client AlreadyClosedException]))
@@ -55,6 +55,10 @@
   ([keyword]
    (keyword exchange-types)))
 
+(defn rmq-connection
+  []
+  (rmq/connect))
+
 (defn close
   "Close a rabbitmq channel or connection. Returns :closed if succesfull.
   Returns :already-closed in case of an Already Closed Exception"
@@ -68,12 +72,12 @@
    return))
 
 (defstate ^{:on-reload :noop} connection
-          :start (rmq/connect)
+          :start (rmq-connection)
           :stop (close connection))
 
 (defn remote-channel
-  []
-  (lch/open connection))
+  [conn-settings]
+  (lch/open conn-settings))
 
 (defn vector-connection->channel
   [setting-values]
@@ -82,46 +86,42 @@
 (defn provide-channel
   "Takes the function and its settings map and a collection of keys. Provides a channel on top of an existing connection
   for function execution. Channel is closed after use"
-  [f m ks]
+  [f m conn-settings ks]
   (let [params (mapv m ks)
-        chan   (remote-channel)]
+        chan   (remote-channel conn-settings)]
     (->> (apply f chan params)
          (close chan))))
 
 (defn set-queue
   "Create and name an RabbitMQ Queue. Return map with queue settings"
-  []
-  (let [qualified-name (u/component->queue-name cfn/component)
-        queue-map      {:datamos-cfg/queue-name qualified-name}
-        s              (u/deep-merge queue-map queue-conf)]
+  [conn-settings settings-map]
+  (let [v (if (settings-map :datamos-cfg/queue-name nil)
+            (let [s (merge settings-map queue-conf)] s)
+            (let [qualified-name (u/component->queue-name settings-map)
+                  queue-map      {:datamos-cfg/queue-name qualified-name}
+                  s              (merge queue-map queue-conf)] s))]
     (provide-channel lq/declare
-                     s
+                     v
+                     conn-settings
                      [:datamos-cfg/queue-name
                       :datamos-cfg/queue-settings])
-    s))
+    v))
 
 (defn remove-queue
   "Removes queue based on :datamos-cfg/queue-name key as supplied by settings map."
-  [settings]
-  (provide-channel lq/delete settings [:datamos-cfg/queue-name]))
+  [conn-settings settings]
+  (provide-channel lq/delete settings conn-settings [:datamos-cfg/queue-name]))
 
 (defstate ^{:on-reload :noop} queue
-          :start (set-queue)
-          :stop (remove-queue queue))
-
-(defn set-config-queue
-  [settings]
-  (provide-channel lq/declare
-                   settings
-                   [:datamos-cfg/low-level-connection
-                    :datamos-cfg/queue-name])
-  settings)
+          :start (set-queue connection base/component)
+          :stop (remove-queue connection queue))
 
 (defn set-exchange
   "Creates the rabbitMQ exchange. Uses the values supplied. If not, it uses the default supplied values."
-  []
+  [conn-settings]
   (provide-channel le/declare
                    exchange-conf
+                   conn-settings
                    [:datamos-cfg/exchange-name
                     :datamos-cfg/exchange-type
                     :datamos-cfg/exchange-settings])
@@ -129,18 +129,19 @@
 
 (defn remove-exchange
   "Removes the RabbitMQ Exchange"
-  [settings]
+  [conn-settings settings]
   (provide-channel le/delete
                    settings
+                   conn-settings
                    [:datamos-cfg/exchange-name]))
 
 (defstate ^{:on-reload :noop} exchange
-          :start (set-exchange)
-          :stop (remove-exchange exchange))
+          :start (set-exchange connection)
+          :stop (remove-exchange connection exchange))
 
 (defn bind-queue
-  []
-  (let [routing-vals    (select-keys cfn/component
+  [conn-settings]
+  (let [routing-vals    (select-keys base/component
                                      [:datamos-cfg/component-type
                                       :datamos-cfg/component-fn
                                       :datamos-cfg/component-uri])
@@ -150,21 +151,23 @@
         s               (merge exchange (assoc queue :datamos-cfg/binding args))]
     (provide-channel lq/bind
                      s
+                     conn-settings
                      [:datamos-cfg/queue-name
                       :datamos-cfg/exchange-name
                       :datamos-cfg/binding])
     s))
 
 (defn remove-binding
-  [settings]
+  [conn-settings settings]
   (provide-channel lq/unbind
                    settings
+                   conn-settings
                    [:datamos-cfg/queue-name
                     :datamos-cfg/exchange-name]))
 
 (defstate ^{:on-reload :noop} bind
-          :start (bind-queue)
-          :stop (remove-binding bind))
+          :start (bind-queue connection)
+          :stop (remove-binding connection bind))
 
 (defn request-config
   [settings message]
@@ -179,16 +182,12 @@
                ["" destination m])))))
 
 (defn send-message
-  [settings message]
+  [conn-settings exchange-settings message]
   (let [destination (get-in message [:datamos/logistic :datamos/rcpt-fn])
         m (nippy/freeze message)]
     (apply lb/publish
-           (vector-connection->channel
-             (into
-               (u/select-submap-values
-                 settings
-                 :datamos-cfg/low-level-connection
-                 :datamos-cfg/exchange-name)
-               ["" m {:headers (conj {}
-                                     (mapv u/keyword->string
-                                           [:datamos-cfg/component-fn destination]))}])))))
+           (remote-channel conn-settings)
+           (:datamos-cfg/exchange-name exchange-settings)
+           ["" m {:headers (conj {}
+                                 (mapv u/keyword->string
+                                       [:datamos-cfg/component-fn destination]))}])))

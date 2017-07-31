@@ -1,4 +1,4 @@
-(ns datamos.component-fn
+(ns datamos.base
   (:require [mount.core :as mnt :refer [defstate]]))
 
 (defonce ^:private component-config (atom {}))               ; Stores the component specific configuration for first mount state.

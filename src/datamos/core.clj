@@ -2,16 +2,16 @@
   (:gen-class)
   (:require [datamos
              [communication :as dcom]
-             [component-fn :as cfn]
+             [base :as base]
              [messaging :as dm]
              [util :as u]
              [core-vars :refer :all]
              [system :as sys :refer [reset]]]
             [clojure.repl :refer :all]))
 
-(cfn/component-function {:datamos-cfg/component-type :datamos-fn/core
-                         :datamos-cfg/component-fn :datamos-fn/registry
-                         :datamos-cfg/response-fn println})
+(base/component-function {:datamos-cfg/component-type :datamos-fn/core
+                         :datamos-cfg/component-fn    :datamos-fn/registry
+                         :datamos-cfg/response-fn     println})
 
 (def config-identifiers
   {:datamos-cfg/queue {:datamos-cfg/queue-name "config.datamos-fn"}})
