@@ -54,6 +54,7 @@
     <orderEntry type="library" name="Leiningen: org.clojure/tools.namespace:0.2.11" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/tools.nrepl:0.2.12" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/tools.reader:0.10.0" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/tools.trace:0.7.9" level="project" />
     <orderEntry type="library" name="Leiningen: org.flatland/classlojure:0.7.0" level="project" />
     <orderEntry type="library" name="Leiningen: org.iq80.snappy/snappy:0.4" level="project" />
     <orderEntry type="library" name="Leiningen: org.ow2.asm/asm-all:4.2" level="project" />

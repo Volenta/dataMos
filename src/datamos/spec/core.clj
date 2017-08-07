@@ -11,7 +11,7 @@
   (s/keys :req [:dms-rdf/value]
           :opt [:dms-rdf/type :dms-rdf/lang]))
 
-(s/def ::node-blank (s/map-of ::property ::object))
+(s/def ::node-blank (s/map-of ::property ::object :min-count 0))
 (s/def ::coll (s/coll-of ::object :kind vector? :min-count 1))
 
 (s/def ::subject-types (s/or :uri keyword?

@@ -1,24 +1,50 @@
 (ns datamos.core
   (:gen-class)
-  (:require [datamos
-             [communication :as dcom]
-             [base :as base]
-             [messaging :as dm]
-             [util :as u]
-             [core-vars :refer :all]
-             [system :as sys :refer [reset]]]
-            [clojure.repl :refer :all]))
+  (:refer-clojure)
+  (:require [mount.core :as mnt :refer [stop start]]
+            [clojure.repl :refer :all]
+            [clojure.tools.namespace :as ctn]
+            [clojure.tools.namespace.repl :refer [refresh]]))
 
-(base/component-function {:datamos-cfg/component-type :datamos-fn/core
-                         :datamos-cfg/component-fn    :datamos-fn/registry
-                         :datamos-cfg/response-fn     println})
+(defn stop-nr
+  "Given a number n, it runs all the states up and included to the amount of states stated by n.
+  Provide statelist (s) as a collection of states as provided by (:started mount.core/start"
+  ([n] (if (not-empty (mnt/running-states))
+         (stop-nr n (mnt/running-states))
+         "No running states, provide state list seperately"))
+  ([n s]
+   (let [c (count (mnt/running-states))]
+     (-> (mnt/only (take (- c n) (:stopped s)))
+         mnt/stop))))
 
-(def config-identifiers
-  {:datamos-cfg/queue {:datamos-cfg/queue-name "config.datamos-fn"}})
+(defn run-nr
+  "Given a number n, it runs all the states up and included to the amount of states stated by n.
+  Provide statelist (s) as a collection of states as provided by (:started mount.core/start"
+  ([n] (if (not-empty (mnt/running-states))
+         (run-nr n (mnt/running-states))
+         "No running states, provide state list seperately"))
+  ([n s]
+   (-> (mnt/only (take n (:started s)))
+       mnt/start)))
 
-(def registry-predicates-set
-  #{:rdf/type :rdfs/label :dms-def/provides})
+; --- Stop & Start system
+
+(defn go
+  []
+  (start)
+  :ready)
+
+(defn stp
+  []
+  (stop)
+  :clear)
+
+(defn reset
+  []
+  (stop)
+  (refresh :after 'datamos.core/go))
 
 (defn -main
   "Initializes datamos.core. Configures the exchange"
-  [& args])
+  [& args]
+  (reset))

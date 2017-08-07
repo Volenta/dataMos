@@ -4,7 +4,8 @@
              [util :as u]
              [rdf-content :as rdf-cnt]
              [msg-content :as msg-cnt]
-             [base :as base]]
+             [base :as base]
+             [rdf-function :as rdf-fn]]
             [langohr
              [consumers :as lc]
              [basic :as lb]]
@@ -14,12 +15,30 @@
             [taoensso.nippy :as nippy]
             [mount.core :as mnt :refer [defstate]]))
 
-; TODO : Reduce speak and speak-rdf to speak. Add parameter to speak to specifiy what kind of content is send.
-;        Allow function to follow a different path based on the value supplied for this parameter.
-
 (def default-consumer-settings
   "Default settings for the component consuming messages from the queue"
   {:auto-ack true :exclusive false})
+
+(defn create-config-message
+  [component-settings]
+  (rdf-cnt/compose-rdf-message component-settings :datamos/registration (rdf-cnt/sign-up component-settings) "config.datamos-fn"))
+
+(defn speak
+  "Send message to another component. Component-settings is a map containing the :datamos-cfg/component-uri key.
+  content is the message to be send, the rcpt is the receipient. Msg-format is :rdf or :config,
+  depending on the provided content."
+  ([connection-settings exchange-settings component-settings]
+   (speak connection-settings exchange-settings component-settings nil nil nil nil))
+  ([connection-settings exchange-settings component-settings rcpt rcpt-type subject content]
+   (let [m (if content
+             (rdf-cnt/compose-rdf-message component-settings subject content rcpt rcpt-type)
+             (create-config-message component-settings))]
+     (println "@speak - just received content:" m)
+     (dm/send-message connection-settings exchange-settings m))))
+
+(defstate ^{:on-reload :noop} speak-connection
+          :start (dm/rmq-connection)
+          :stop (dm/close speak-connection))
 
 (defn channel
   []
@@ -29,36 +48,13 @@
 (defstate local-channel
           :start (channel))
 
-(defn create-config-message
-  [component-settings]
-  (rdf-cnt/compose-rdf-message component-settings (rdf-cnt/sign-up component-settings) "config.datamos-fn"))
-
-(defn speak
-  "Send message to another component. Component-settings is a map containing the :datamos-cfg/component-uri key.
-  content is the message to be send, the rcpt is the receipient. Msg-format is :rdf or :config,
-  depending on the provided content."
-  ([connection-settings exchange-settings component-settings]
-   (speak connection-settings exchange-settings component-settings :rdf))
-  ([connection-settings exchange-settings component-settings msg-format]
-   (let [generate-message (case msg-format
-                            :rdf rdf-cnt/compose-rdf-message
-                            :config create-config-message)]
-     (println "Message format:" msg-format)
-     (dm/send-message connection-settings exchange-settings
-                      (generate-message component-settings)))))
-
-(comment
-  (defn speak-sign-up
-   "Send message to sign-up functionality and retrieve configuration. Function will deliver messages to the config.datamos-fn
-   queue. Use for initialization of a component."
-   [settings]
-   (dm/request-config settings)))
-
 (defn channel-message
   [ch-map]
   (let [chan (:datamos-cfg/listen-channel ch-map)]
     (fn [ch meta ^bytes payload]
-      (async/put! chan [ch meta payload]))))
+      (do
+        #_(println "@channel-message - somehting comming in, with meta:" meta)
+        (async/put! chan [ch meta payload])))))
 
 (defn listen
   [conn-settings local-ch-settings queue-settings]
@@ -91,12 +87,21 @@
 
 (defn response
   [ch-map settings-map]
-  (let [function  (:datamos-cfg/response-fn settings-map)]
-    (async/go (while true
-                (let [[ch meta payload] (async/<! (:datamos-cfg/listen-channel ch-map))]
-                  (function ch meta (nippy/thaw payload)))))))
+  (async/go
+    (let [fn-map (:dms-def/provides (rdf-fn/get-predicate-object-map settings-map))]
+      (while true
+                (let [[ch meta payload] (async/<! (:datamos-cfg/listen-channel ch-map))
+                      message (nippy/thaw payload)
+                      msg-header (:datamos/logistic message)
+                      subject (rdf-fn/value-from-nested-map
+                                (rdf-fn/predicate-filter msg-header #{:dms-def/subject}))]
+                  ((fn-map subject println) ch meta message))))))
 
 
 (defstate responder
           :start (response local-channel base/component)
           :stop (async/close! responder))
+
+(defstate signed-up
+          :start (speak speak-connection dm/exchange base/component)
+          :stop +)

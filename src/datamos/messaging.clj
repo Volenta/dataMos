@@ -12,12 +12,13 @@
             [datamos.spec.core :as dsc]
             [datamos
              [util :as u]
-             [base :as base]]
+             [base :as base]
+             [rdf-function :as rdf-fn]]
             [taoensso.nippy :as nippy]
             [mount.core :as mnt :refer [defstate]])
   (:import [com.rabbitmq.client AlreadyClosedException]))
 
-; TODO: Sent config.
+; TODO - Check if meta information to maps is serializable by EDN.
 
 (def connection-object-set
   #{com.novemberain.langohr.Connection
@@ -112,7 +113,7 @@
   [conn-settings settings]
   (provide-channel lq/delete settings conn-settings [:datamos-cfg/queue-name]))
 
-(defstate ^{:on-reload :noop} queue
+(defstate queue
           :start (set-queue connection base/component)
           :stop (remove-queue connection queue))
 
@@ -140,15 +141,16 @@
           :stop (remove-exchange connection exchange))
 
 (defn bind-queue
-  [conn-settings]
-  (let [routing-vals    (select-keys base/component
-                                     [:datamos-cfg/component-type
-                                      :datamos-cfg/component-fn
-                                      :datamos-cfg/component-uri])
+  [conn-settings component-settings exch q]
+  (let [cs-subset (((first component-settings) 0) component-settings)
+        routing-vals (into (select-keys cs-subset
+                                        [:datamos-cfg/component-type
+                                         :datamos-cfg/component-fn])
+                           [[(:rdf/type cs-subset) ((first component-settings) 0)]])
         routing-args    (into {} (map #(mapv u/keyword->string %) routing-vals))
         header-matching {"x-match" "any"}
         args            {:arguments (conj routing-args header-matching)}
-        s               (merge exchange (assoc queue :datamos-cfg/binding args))]
+        s               (merge exch (assoc q :datamos-cfg/binding args))]
     (provide-channel lq/bind
                      s
                      conn-settings
@@ -165,8 +167,8 @@
                    [:datamos-cfg/queue-name
                     :datamos-cfg/exchange-name]))
 
-(defstate ^{:on-reload :noop} bind
-          :start (bind-queue connection)
+(defstate bind
+          :start (bind-queue connection base/component exchange queue)
           :stop (remove-binding connection bind))
 
 (defn request-config
@@ -181,13 +183,42 @@
                  :datamos-cfg/low-level-connection)
                ["" destination m])))))
 
-(defn send-message
+(defn send-message-by-header
   [conn-settings exchange-settings message]
-  (let [destination (get-in message [:datamos/logistic :datamos/rcpt-fn])
+  (let [predicate #{:dms-def/component}
+        msg-header (:datamos/logistic message)
+        [rcpt-type rcpt] (first (rdf-fn/get-predicate-object-map (rdf-fn/predicate-filter msg-header predicate)))
         m (nippy/freeze message)]
     (apply lb/publish
            (remote-channel conn-settings)
            (:datamos-cfg/exchange-name exchange-settings)
            ["" m {:headers (conj {}
                                  (mapv u/keyword->string
-                                       [:datamos-cfg/component-fn destination]))}])))
+                                       [rcpt-type rcpt]))}])))
+
+(defn send-message-by-queue
+  [conn-settings exchange-settings message]
+  (let [predicate #{:datamos-cfg/rcpt-queue}
+        msg-header (:datamos/logistic message)
+        destination (rdf-fn/value-from-nested-map (rdf-fn/predicate-filter msg-header predicate))
+        m (nippy/freeze message)]
+    (println "@send-message-by-queue - just tell me what the exchange is:" exchange-settings)
+    (lb/publish
+      (remote-channel conn-settings)
+      (:datamos-cfg/exchange-name exchange-settings)
+      destination
+      m)))
+
+(defn send-message
+  [conn-settings exchange-settings message]
+  (let [predicate #{:datamos-cfg/rcpt-queue}
+        msg-header (:datamos/logistic message)]
+    (if (empty? (rdf-fn/predicate-filter msg-header predicate))
+      (do #_(println "@send-message - yep, going for headers:" conn-settings exchange-settings message)
+          (send-message-by-header conn-settings
+                                  exchange-settings
+                                  message))
+      (do #_(println "@send-message - And now, the message is send by queue" conn-settings exchange-settings message)
+          (send-message-by-queue conn-settings
+                                 {:datamos-cfg/exchange-name ""}
+                                 message)))))
