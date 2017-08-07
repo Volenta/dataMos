@@ -1,4 +1,4 @@
-(defproject datamos "0.1.0-SNAPSHOT"
+(defproject org.clojars.the-infotect/datamos "0.1.0"
   :description "Messaging platform displaying the capabilities of RDF triples."
   :url "http://theinfotect.org/datamos"
   :license {:name "GNU AFFERO GENERAL PUBLIC LICENSE, Version 3"

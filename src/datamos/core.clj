@@ -6,6 +6,9 @@
             [clojure.tools.namespace :as ctn]
             [clojure.tools.namespace.repl :refer [refresh]]))
 
+; TODO - make dataMos core available for config project
+; TODO - make dataMos core available for prefix project
+
 (defn stop-nr
   "Given a number n, it runs all the states up and included to the amount of states stated by n.
   Provide statelist (s) as a collection of states as provided by (:started mount.core/start"

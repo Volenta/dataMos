@@ -3,9 +3,9 @@
              [communication :as dcom]
              [messaging :as dm]
              [base :as base]
-             [rdf-function :as rdf-fn]]
-            [mount.core :as mnt :refer [defstate]]
-            [datamos.rdf-content :as rdf-cnt]))
+             [rdf-function :as rdf-fn]
+             [rdf-content :as rdf-cnt]]
+            [mount.core :as mnt :refer [defstate]]))
 
 (defn de-register-uri
   [component-settings]
