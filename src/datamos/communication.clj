@@ -101,7 +101,3 @@
 (defstate responder
           :start (response local-channel base/component)
           :stop (async/close! responder))
-
-(defstate signed-up
-          :start (speak speak-connection dm/exchange base/component)
-          :stop +)
