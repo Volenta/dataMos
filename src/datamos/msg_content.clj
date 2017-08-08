@@ -1,5 +1,4 @@
-(ns datamos.msg-content
-  (:require [datamos.util :as u]))
+(ns datamos.msg-content)
 
 (defn retrieve-sender
   "Returns component-settings value for key :datamos-cfg/component-uri. If option is :type

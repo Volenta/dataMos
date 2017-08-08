@@ -1,9 +1,7 @@
 (ns datamos.communication
   (:require [datamos
              [messaging :as dm]
-             [util :as u]
              [rdf-content :as rdf-cnt]
-             [msg-content :as msg-cnt]
              [base :as base]
              [rdf-function :as rdf-fn]]
             [langohr

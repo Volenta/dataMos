@@ -1,9 +1,6 @@
 (ns datamos.rdf-content
   (:require [datamos
-             [util :as u]
-             [msg-content :as msg-cnt]
-             [rdf-function :as rdf-fn]
-             [base :as base]]
+             [rdf-function :as rdf-fn]]
             [datamos.spec.core :as dsc]))
 
 (defn rdf-triple
