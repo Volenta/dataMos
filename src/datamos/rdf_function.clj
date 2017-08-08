@@ -2,7 +2,7 @@
   "Contains functions working on RDF data-sets")
 
 (defn get-predicate-object-map
-  "Takes a triple map. Returns the sub-map (= predicate and obejct)"
+  "Takes a triple map. Returns the sub-map (= predicate and object)"
   [triple-map]
   ((first triple-map) 1))
 

@@ -10,23 +10,31 @@
 (defn de-register-uri
   [component-settings]
   (let [predicate :dms-def/provides
-        lr ((:datamos-cfg/local-register
-              (rdf-fn/get-predicate-object-map component-settings)))]
-    (apply (fn [x y]
-             [x (if (set? y)
-                  (y :datamos/de-register)
-                  y)])
-      (rdf-fn/subject-object-by-predicate
-          (rdf-fn/predicate-filter lr #{predicate}) predicate))))
+        lr-fn (:datamos-cfg/local-register
+                (rdf-fn/get-predicate-object-map component-settings))
+        lr (if lr-fn
+             lr-fn
+             {})]
+    (if (empty? lr)
+      nil
+      (apply (fn [x y]
+               [x (if (set? y)
+                    (y :datamos/de-register)
+                    y)])
+             (rdf-fn/subject-object-by-predicate
+               (rdf-fn/predicate-filter lr #{predicate}) predicate)))))
 
 (defn de-register-component
   "De-register this component from the main register."
   [conn-settings ex-settings component-settings]
   (let [subject (rdf-fn/get-subject component-settings)
-        [receipient f] (de-register-uri component-settings)
+        response (de-register-uri component-settings)
+        [recipient f] (if response
+                        response
+                        [:datamos-fn/registry :datamos/de-register])
         content (rdf-cnt/rdf-triple subject :dms-def/apply f)]
-    (dcom/speak conn-settings ex-settings component-settings receipient :dms-def/component f content)))
+    (dcom/speak conn-settings ex-settings component-settings recipient :dms-def/component f content)))
 
-(defstate signed-up
+(defstate signing-up
           :start (dcom/speak dcom/speak-connection dm/exchange base/component)
           :stop (de-register-component dcom/speak-connection dm/exchange base/component))
