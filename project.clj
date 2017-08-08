@@ -1,4 +1,4 @@
-(defproject org.volenta/datamos "0.1.3-SNAPSHOT"
+(defproject org.volenta/datamos "0.1.4"
   :description "Messaging platform displaying the capabilities of RDF triples."
   :url "http://theinfotect.org/datamos"
   :license {:name "GNU AFFERO GENERAL PUBLIC LICENSE, Version 3"
@@ -14,4 +14,6 @@
   :aot [datamos.core]
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}
-             :dev {:dependencies [[org.clojure/test.check "0.10.0-alpha2"]]}})
+             :dev {:dependencies [[org.clojure/test.check "0.10.0-alpha2"]]}}
+  :repositories [["releases" {:url "https://clojars.org/repo"
+                              :creds :gpg}]])
