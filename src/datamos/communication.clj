@@ -10,7 +10,8 @@
             [clojure.core.async :as async]
             [clojure.core.async.impl.protocols :as async-p]
             [taoensso.nippy :as nippy]
-            [mount.core :as mnt :refer [defstate]]))
+            [mount.core :as mnt :refer [defstate]]
+            [taoensso.timbre :as log]))
 
 (def default-consumer-settings
   "Default settings for the component consuming messages from the queue"
@@ -18,19 +19,23 @@
 
 (defn create-config-message
   [component-settings]
-  (rdf-cnt/compose-rdf-message component-settings :datamos/registration (rdf-cnt/sign-up component-settings) "config.datamos-fn"))
+  (do
+    (log/trace "@create-config-message" (log/get-env))
+    (rdf-cnt/compose-rdf-message component-settings :datamos/registration (rdf-cnt/sign-up component-settings) "config.datamos-fn")))
 
 (defn speak
   "Send message to another component. Component-settings is a map containing the :datamos-cfg/component-uri key.
   content is the message to be send, the rcpt is the receipient. Msg-format is :rdf or :config,
   depending on the provided content."
   ([connection-settings exchange-settings component-settings]
-   (speak connection-settings exchange-settings component-settings nil nil nil nil))
+   (do
+     (log/trace "@speak - 3arity" (log/get-env))
+     (speak connection-settings exchange-settings component-settings nil nil nil nil)))
   ([connection-settings exchange-settings component-settings rcpt rcpt-type subject content]
    (let [m (if content
              (rdf-cnt/compose-rdf-message component-settings subject content rcpt rcpt-type)
              (create-config-message component-settings))]
-     (println "@speak - just received content:" m)
+     (log/debug "@speak - 7arity" (log/get-env))
      (dm/send-message connection-settings exchange-settings m))))
 
 (defstate ^{:on-reload :noop} speak-connection
@@ -54,7 +59,7 @@
   (let [chan (:datamos-cfg/listen-channel ch-map)]
     (fn [ch meta ^bytes payload]
       (do
-        #_(println "@channel-message - somehting comming in, with meta:" meta)
+        (log/debug "@channel-message" (log/get-env))
         (async/put! chan [ch meta payload])))))
 
 (defn listen
@@ -96,7 +101,9 @@
                       msg-header (:datamos/logistic message)
                       subject (rdf-fn/value-from-nested-map
                                 (rdf-fn/predicate-filter msg-header #{:dms-def/subject}))]
-                  ((fn-map subject println) ch meta message))))))
+                  (do
+                    (log/trace "@response" (log/get-env))
+                    ((fn-map subject println) ch meta message)))))))
 
 
 (defstate responder

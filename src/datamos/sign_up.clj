@@ -3,7 +3,8 @@
              [communication :as dcom]
              [rdf-function :as rdf-fn]
              [rdf-content :as rdf-cnt]]
-            [mount.core :as mnt :refer [defstate]]))
+            [mount.core :as mnt :refer [defstate]]
+            [taoensso.timbre :as log]))
 
 (defn de-register-uri
   [component-settings]
@@ -31,6 +32,7 @@
                         response
                         [:datamos-fn/registry :datamos/de-register])
         content (rdf-cnt/rdf-triple subject :dms-def/apply f)]
+    (log/trace "@de-register-component" (log/get-env))
     (dcom/speak conn-settings ex-settings component-settings recipient :dms-def/component f content)))
 
 (defstate signing-up

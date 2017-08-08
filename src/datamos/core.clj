@@ -1,10 +1,11 @@
 (ns datamos.core
-  (:gen-class)
   (:refer-clojure)
   (:require [mount.core :as mnt :refer [stop start]]
             [clojure.repl :refer :all]
             [clojure.tools.namespace :as ctn]
-            [clojure.tools.namespace.repl :refer [refresh]]))
+            [clojure.tools.namespace.repl :refer [refresh]]
+            [taoensso.timbre :as log]
+            [taoensso.timbre.appenders.core :as appenders]))
 
 ; TODO - check if state reference functions actually mean an inconsistency between states, functions and namespaces.
 ; TODO - make dataMos core available for prefix project
@@ -50,4 +51,8 @@
 (defn -main
   "Initializes datamos.core. Configures the exchange"
   [& args]
-  (reset))
+  (do
+    (log/merge-config!
+      {:appenders {:spit (appenders/spit-appender {:fname "datamos.log"})}})
+    (log/info "Starting")
+    (reset)))

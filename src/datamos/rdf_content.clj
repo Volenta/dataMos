@@ -1,7 +1,8 @@
 (ns datamos.rdf-content
   (:require [datamos
              [rdf-function :as rdf-fn]]
-            [datamos.spec.core :as dsc]))
+            [datamos.spec.core :as dsc]
+            [taoensso.timbre :as log]))
 
 (defn rdf-triple
   "Provides a simple triple. Can be used as an dummy value"
@@ -19,6 +20,7 @@
                             (rdf-fn/get-predicate-object-map
                               (rdf-fn/get-predicate-object-map
                                 (rdf-fn/predicate-filter component-settings #{:dms-def/provides})))))]
+    (log/trace "@sign-up" (log/get-env))
     (update-in
       sign-up-msg
       (keys component-settings)
@@ -68,6 +70,7 @@
              (message-receipient component-settings rcpt rcpt-type)
              (message-receipient rcpt))
          s (message-sender component-settings)]
+     (log/trace "@compose-rdf-message" (log/get-env))
      {:datamos/logistic    (conj r s
                                  {:dms-def/message {:dms-def/subject subject}})
       :datamos/rdf-content {:datamos/prefix  {}

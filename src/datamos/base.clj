@@ -1,5 +1,6 @@
 (ns datamos.base
-  (:require [mount.core :as mnt :refer [defstate]]))
+  (:require [mount.core :as mnt :refer [defstate]]
+            [taoensso.timbre :as log]))
 
 (defonce ^:private component-config (atom {}))               ; Stores the component specific configuration for first mount state.
 
@@ -23,6 +24,7 @@
                 :datamos-cfg/local-register]
          :or {component-type :datamos-fn/enrichment
               component-fn :datamos-fn/function}} settings]
+    (log/trace "@set-component" (log/get-env))
     {(generate-qualified-uri component-fn) {:datamos-cfg/component-type component-type
                                             :datamos-cfg/component-fn   component-fn
                                             :dms-def/provides           provides
