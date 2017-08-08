@@ -6,7 +6,7 @@
             [clojure.tools.namespace :as ctn]
             [clojure.tools.namespace.repl :refer [refresh]]))
 
-; TODO - make dataMos core available for config project
+; TODO - check if state reference functions actually mean an inconsistency between states, functions and namespaces.
 ; TODO - make dataMos core available for prefix project
 
 (defn stop-nr

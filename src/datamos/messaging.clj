@@ -47,14 +47,9 @@
   (let [qu-settings default-queue-settings]
     {:datamos-cfg/queue-settings qu-settings}))
 
-(defn unfreeze-message
-  [payload]
-  (nippy/thaw payload))
-
-(defn ex-type
-  ([] exchange-types)
-  ([keyword]
-   (keyword exchange-types)))
+(defn base-component-state-reference
+  []
+  base/component)
 
 (defn rmq-connection
   []

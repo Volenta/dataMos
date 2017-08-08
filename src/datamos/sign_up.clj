@@ -1,8 +1,6 @@
 (ns datamos.sign-up
   (:require [datamos
              [communication :as dcom]
-             [messaging :as dm]
-             [base :as base]
              [rdf-function :as rdf-fn]
              [rdf-content :as rdf-cnt]]
             [mount.core :as mnt :refer [defstate]]))
@@ -36,5 +34,5 @@
     (dcom/speak conn-settings ex-settings component-settings recipient :dms-def/component f content)))
 
 (defstate signing-up
-          :start (dcom/speak dcom/speak-connection dm/exchange base/component)
-          :stop (de-register-component dcom/speak-connection dm/exchange base/component))
+          :start (apply dcom/speak (dcom/sign-up-state-reference))
+          :stop (apply de-register-component (dcom/sign-up-state-reference)))

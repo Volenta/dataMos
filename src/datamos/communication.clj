@@ -2,7 +2,6 @@
   (:require [datamos
              [messaging :as dm]
              [rdf-content :as rdf-cnt]
-             [base :as base]
              [rdf-function :as rdf-fn]]
             [langohr
              [consumers :as lc]
@@ -37,6 +36,10 @@
 (defstate ^{:on-reload :noop} speak-connection
           :start (dm/rmq-connection)
           :stop (dm/close speak-connection))
+
+(defn sign-up-state-reference
+  []
+  [speak-connection dm/exchange (dm/base-component-state-reference)])
 
 (defn channel
   []
@@ -97,5 +100,5 @@
 
 
 (defstate responder
-          :start (response local-channel base/component)
+          :start (response local-channel (dm/base-component-state-reference))
           :stop (async/close! responder))
