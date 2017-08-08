@@ -1,4 +1,4 @@
-(defproject org.clojars.the-infotect/datamos "0.1.2"
+(defproject org.clojars.the-infotect/datamos "0.1.2-SNAPSHOT"
   :description "Messaging platform displaying the capabilities of RDF triples."
   :url "http://theinfotect.org/datamos"
   :license {:name "GNU AFFERO GENERAL PUBLIC LICENSE, Version 3"
@@ -10,7 +10,8 @@
                  [com.novemberain/langohr "3.7.0"]
                  [mount "0.1.11"]
                  [org.clojure/tools.namespace "0.2.11"]]
-  :main ^:skip-aot datamos.core
+  :main datamos.core
+  :aot [datamos.core]
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}
              :dev {:dependencies [[org.clojure/test.check "0.10.0-alpha2"]]}})
