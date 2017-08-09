@@ -1,4 +1,4 @@
-(defproject org.volenta/datamos "0.1.5.2"
+(defproject org.volenta/datamos "0.1.5.3"
   :description "Messaging platform displaying the capabilities of RDF triples."
   :url "http://theinfotect.org/datamos"
   :license {:name "GNU AFFERO GENERAL PUBLIC LICENSE, Version 3"
