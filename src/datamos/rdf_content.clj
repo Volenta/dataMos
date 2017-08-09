@@ -5,8 +5,6 @@
             [taoensso.timbre :as log]
             [datamos.util :as u]))
 
-; TODO - add unique message id to each message. For instance by using uuid.
-
 (defn rdf-triple
   "Provides a simple triple. Can be used as an dummy value"
   [subject predicate object]
