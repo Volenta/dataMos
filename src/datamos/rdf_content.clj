@@ -45,9 +45,9 @@
   ([rcpt]
    (if (= rcpt "config.datamos-fn")
      {{} {:datamos-cfg/rcpt-queue rcpt
-          :dms-def/transmit :dms-def/receipient}}
+          :dms-def/transmit :dms-def/recipient}}
      {{} {:datamos-cfg/module-fn rcpt
-          :dms-def/transmit :dms-def/receipient}}))
+          :dms-def/transmit :dms-def/recipient}}))
   ([component-settings rcpt rcpt-type]
    (let [rcpt-id (if (= :dms-def/module rcpt-type)
                    (if (= (rdf-fn/get-subject component-settings) rcpt)
@@ -55,10 +55,10 @@
                      rcpt)
                    {})]
      {rcpt-id {rcpt-type         rcpt
-               :dms-def/transmit :dms-def/receipient}}))
+               :dms-def/transmit :dms-def/recipient}}))
   ([component-settings rcpt rcpt-type rcpt-component]
    {rcpt-component {rcpt-type rcpt
-                    :dms-def/transmit :dms-def/receipient}}))
+                    :dms-def/transmit :dms-def/recipient}}))
 
 (defn compose-rdf-message
   "Returns full message, with values for :datamos/logistic and :datamos/rdf-content.
