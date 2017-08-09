@@ -4,12 +4,12 @@
 (defn get-predicate-object-map
   "Takes a triple map. Returns the sub-map (= predicate and object)"
   [triple-map]
-  ((first triple-map) 1))
+  (apply second triple-map))
 
 (defn get-subject
   "takes a triple map. Returns the subject"
   [triple-map]
-  ((first triple-map) 0))
+  (apply first triple-map))
 
 
 (defn value-from-nested-map

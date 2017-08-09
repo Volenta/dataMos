@@ -144,8 +144,8 @@
   [conn-settings component-settings exch q]
   (let [cs-subset (((first component-settings) 0) component-settings)
         routing-vals (into (select-keys cs-subset
-                                        [:datamos-cfg/component-type
-                                         :datamos-cfg/component-fn])
+                                        [:datamos-cfg/module-type
+                                         :datamos-cfg/module-fn])
                            [[(:rdf/type cs-subset) ((first component-settings) 0)]])
         routing-args    (into {} (map #(mapv u/keyword->string %) routing-vals))
         header-matching {"x-match" "any"}
@@ -174,7 +174,7 @@
 
 (defn send-message-by-header
   [conn-settings exchange-settings message]
-  (let [predicate #{:dms-def/component}
+  (let [predicate #{:dms-def/module}
         msg-header (:datamos/logistic message)
         [rcpt-type rcpt] (first (rdf-fn/get-predicate-object-map (rdf-fn/predicate-filter msg-header predicate)))
         m (nippy/freeze message)]

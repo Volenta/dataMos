@@ -12,8 +12,8 @@
 (defn sign-up
   [component-settings]
   (let [component-fn (rdf-fn/value-from-nested-map
-                       (rdf-fn/predicate-filter component-settings #{:datamos-cfg/component-fn}))
-        pred-filter #{:rdf/type :datamos-cfg/component-type :datamos-cfg/component-fn}
+                       (rdf-fn/predicate-filter component-settings #{:datamos-cfg/module-fn}))
+        pred-filter #{:rdf/type :datamos-cfg/module-type :datamos-cfg/module-fn}
         sign-up-msg (rdf-fn/predicate-filter component-settings pred-filter)
         response-fn-set (set
                           (keys
@@ -34,8 +34,8 @@
   [component-settings]
   (update-in
     (datamos.rdf-function/predicate-filter component-settings
-                                           #{:datamos-cfg/component-type
-                                             :datamos-cfg/component-fn
+                                           #{:datamos-cfg/module-type
+                                             :datamos-cfg/module-fn
                                              :rdf/type})
     (keys component-settings)
     conj
@@ -46,10 +46,10 @@
    (if (= rcpt "config.datamos-fn")
      {{} {:datamos-cfg/rcpt-queue rcpt
           :dms-def/transmit :dms-def/receipient}}
-     {{} {:datamos-cfg/component-fn rcpt
+     {{} {:datamos-cfg/module-fn rcpt
           :dms-def/transmit :dms-def/receipient}}))
   ([component-settings rcpt rcpt-type]
-   (let [rcpt-id (if (= :dms-def/component rcpt-type)
+   (let [rcpt-id (if (= :dms-def/module rcpt-type)
                    (if (= (rdf-fn/get-subject component-settings) rcpt)
                      :datamos/idem-sender
                      rcpt)

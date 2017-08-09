@@ -49,7 +49,7 @@
 
 (defn component->queue-name
   "Takes settings map, returns queue-name string. Queue-name is generated from the value for
-  key :datamos-cfg/component-uri, part of a submap in settings map"
+  key :datamos-cfg/module-uri, part of a submap in settings map"
   [settings]
   (let [v (first (first settings))
         ns (namespace v)

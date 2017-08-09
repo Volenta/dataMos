@@ -24,7 +24,7 @@
     (rdf-cnt/compose-rdf-message component-settings :datamos/registration (rdf-cnt/sign-up component-settings) "config.datamos-fn")))
 
 (defn speak
-  "Send message to another component. Component-settings is a map containing the :datamos-cfg/component-uri key.
+  "Send message to another component. Component-settings is a map containing the :datamos-cfg/module-uri key.
   content is the message to be send, the rcpt is the receipient. Msg-format is :rdf or :config,
   depending on the provided content."
   ([connection-settings exchange-settings component-settings]
