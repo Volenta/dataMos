@@ -3,6 +3,10 @@
   (:require [clojure
              [string :as str]]))
 
+(defn return-uuid
+  []
+  (java.util.UUID/randomUUID))
+
 (defn deep-merge
   [& maps]
   (apply merge-with deep-merge maps))

@@ -1,5 +1,11 @@
 (ns datamos.rdf-function
-  "Contains functions working on RDF data-sets")
+  "Contains functions working on RDF data-sets"
+  (:require [datamos.util :as u]))
+
+(defn generate-qualified-uri
+  "Return unique uri, based on type-kw."
+  [type-kw]
+  (keyword (str (namespace type-kw) "/" (name type-kw) "+dms-fn+" (u/return-uuid))))
 
 (defn get-predicate-object-map
   "Takes a triple map. Returns the sub-map (= predicate and object)"

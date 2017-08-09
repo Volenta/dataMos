@@ -3,6 +3,9 @@
             [datamos.rdf-function :refer :all]))
 
 
+(deftest generate-qualified-uri-test
+  (is (keyword? (generate-qualified-uri :test/uri))))
+
 (deftest get-predicate-object-map-test
   (is (= {:twee :drie}
         (get-predicate-object-map {:een {:twee :drie}})))

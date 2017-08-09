@@ -2,7 +2,10 @@
   (:require [datamos
              [rdf-function :as rdf-fn]]
             [datamos.spec.core :as dsc]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [datamos.util :as u]))
+
+; TODO - add unique message id to each message. For instance by using uuid.
 
 (defn rdf-triple
   "Provides a simple triple. Can be used as an dummy value"
@@ -69,9 +72,11 @@
    (let [r (if rcpt-type
              (message-receipient component-settings rcpt rcpt-type)
              (message-receipient rcpt))
-         s (message-sender component-settings)]
+         s (message-sender component-settings)
+         m-id (keyword (str "datamos/msg-id+" (u/return-uuid)))]
      (log/trace "@compose-rdf-message" (log/get-env))
      {:datamos/logistic    (conj r s
-                                 {:dms-def/message {:dms-def/subject subject}})
+                                 {:dms-def/message {:dms-def/subject subject
+                                                    :dms-def/message-id m-id}})
       :datamos/rdf-content {:datamos/prefix  {}
                             :datamos/triples content}})))

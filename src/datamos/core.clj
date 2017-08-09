@@ -9,6 +9,7 @@
 
 ; TODO - check if state reference functions actually mean an inconsistency between states, functions and namespaces.
 ; TODO - make dataMos core available for prefix project
+; TODO - test if message loop isn't happening.
 
 (defn stop-nr
   "Given a number n, it runs all the states up and included to the amount of states stated by n.
