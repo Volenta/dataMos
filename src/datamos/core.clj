@@ -35,24 +35,24 @@
 
 (defn go
   []
-  (start)
-  :ready)
+  (do
+    (log/merge-config!
+      {:appenders
+       {:println {:min-level :info}
+        :spit (merge (appenders/spit-appender {:fname "datamos.log"})
+                     {:min-level :trace})}}))
+    (log/info "@go - Starting dataMos")
+    (start)
+    (log/info "@go - dataMos Running"))
 
 (defn stp
   []
-  (stop)
-  :clear)
+  (do
+    (stop)
+    (log/info "@stop - dataMos has stopped")))
 
 (defn reset
   []
-  (stop)
-  (refresh :after 'datamos.core/go))
-
-(defn -main
-  "Initializes datamos.core. Configures the exchange"
-  [& args]
   (do
-    (log/merge-config!
-      {:appenders {:spit (appenders/spit-appender {:fname "datamos.log"})}})
-    (log/info "Starting")
-    (reset)))
+    (stp)
+    (refresh :after 'datamos.core/go)))
