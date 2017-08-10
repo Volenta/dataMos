@@ -94,7 +94,7 @@
 (defn response
   [ch-map settings-map]
   (async/go
-    (let [fn-map (:dms-def/provides (rdf-fn/get-predicate-object-map settings-map))]
+    (if-let [fn-map (:dms-def/provides (rdf-fn/get-predicate-object-map settings-map))]
       (while true
                 (let [[ch meta payload] (async/<! (:datamos-cfg/listen-channel ch-map))
                       message (nippy/thaw payload)
@@ -102,7 +102,10 @@
                       subject (rdf-fn/value-from-nested-map
                                 (rdf-fn/predicate-filter msg-header #{:dms-def/subject}))]
                   (log/trace "@response" (log/get-env))
-                  ((fn-map subject println) ch meta message))))))
+                  ((fn-map subject println) ch meta message)))
+      (do
+        (log/warn "A map with functions is unavailable. Unable to fulfill the request")
+        (log/trace "@response - No function map" (log/get-env))))))
 
 
 (defstate responder
