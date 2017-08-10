@@ -101,9 +101,8 @@
                       msg-header (:datamos/logistic message)
                       subject (rdf-fn/value-from-nested-map
                                 (rdf-fn/predicate-filter msg-header #{:dms-def/subject}))]
-                  (do
-                    (log/trace "@response" (log/get-env))
-                    ((fn-map subject println) ch meta message)))))))
+                  (log/trace "@response" (log/get-env))
+                  ((fn-map subject println) ch meta message))))))
 
 
 (defstate responder
