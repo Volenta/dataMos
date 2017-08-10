@@ -4,14 +4,21 @@
              [rdf-function :as rdf-fn]
              [rdf-content :as rdf-cnt]]
             [mount.core :as mnt :refer [defstate]]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [clojure.core.async :as async]))
+
+(defn initialize-registration
+  [conn-settings ex-settings module-settings]
+  (async/go
+    (Thread/sleep 1000)
+    (dcom/speak conn-settings ex-settings module-settings)))
 
 (defn de-register-uri
   [component-settings]
   (let [predicate :dms-def/provides
         lr (:datamos-cfg/local-register
              (rdf-fn/get-predicate-object-map component-settings))]
-    (if lr
+    (if (seq lr)
       (apply (fn [x y]
                [x (if (set? y)
                     (y :datamos/de-register)
@@ -33,5 +40,5 @@
     (dcom/speak conn-settings ex-settings component-settings recipient :dms-def/module f content)))
 
 (defstate signing-up
-          :start (apply dcom/speak (dcom/sign-up-state-reference))
+          :start (apply initialize-registration (dcom/sign-up-state-reference))
           :stop (apply de-register-component (dcom/sign-up-state-reference)))
