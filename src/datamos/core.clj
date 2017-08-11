@@ -3,7 +3,7 @@
   (:require [mount.core :as mnt :refer [stop start]]
             [clojure.repl :refer :all]
             [clojure.tools.namespace :as ctn]
-            [clojure.tools.namespace.repl :refer [refresh]]
+            [clojure.tools.namespace.repl :refer [refresh set-refresh-dirs]]
             [taoensso.timbre :as log]
             [taoensso.timbre.appenders.core :as appenders]))
 
@@ -56,3 +56,5 @@
   (do
     (stp)
     (refresh :after 'datamos.core/go)))
+
+(set-refresh-dirs "src")
