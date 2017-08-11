@@ -1,7 +1,9 @@
 (ns datamos.module-helpers
   (:require [datamos
+             [rdf-function :as rdf-fn]
              [communication :as dcom]
-             [messaging :as dm]]))
+             [messaging :as dm]]
+            [taoensso.timbre :as log]))
 
 (defn retrieve-prefixes
   [rdf-map]
@@ -20,3 +22,21 @@
               :dms-def/module
               :datamos/match-prefix
               {:dms-def/message {:dms-def/namespaces (retrieve-prefixes rdf-map)}}))
+
+(defn use-local-register
+  [local-register]
+  (fn register
+    [_ _ message]
+    (let [rdf-content (rdf-fn/message-content message)
+          r           local-register
+          values      (rdf-fn/values-by-predicate :dms-def/function
+                                                  rdf-content
+                                                  r)]
+      (log/debug "@register" (log/get-env))
+      (when (apply = values)
+        (do
+          (log/trace "@register - duplicate module-fns" (log/get-env))
+          (swap! remote-components (fn [m]
+                                     (dissoc m
+                                             (first (rdf-fn/subject-object-by-predicate m :dms-def/function)))))))
+      (swap! remote-components conj rdf-content))))
