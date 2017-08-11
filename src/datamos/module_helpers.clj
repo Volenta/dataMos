@@ -23,20 +23,20 @@
               :datamos/match-prefix
               {:dms-def/message {:dms-def/namespaces (retrieve-prefixes rdf-map)}}))
 
-(defn use-local-register
+(defn local-module-register
   [local-register]
-  (fn register
-    [_ _ message]
-    (let [rdf-content (rdf-fn/message-content message)
-          r           local-register
-          values      (rdf-fn/values-by-predicate :dms-def/function
-                                                  rdf-content
-                                                  r)]
-      (log/debug "@register" (log/get-env))
-      (when (apply = values)
-        (do
-          (log/trace "@register - duplicate module-fns" (log/get-env))
-          (swap! remote-components (fn [m]
-                                     (dissoc m
-                                             (first (rdf-fn/subject-object-by-predicate m :dms-def/function)))))))
-      (swap! remote-components conj rdf-content))))
+  {:datamos/registry (fn register
+                       [_ _ message]
+                       (let [rdf-content (rdf-fn/message-content message)
+                             r           @local-register
+                             values      (rdf-fn/values-by-predicate :dms-def/function
+                                                                     rdf-content
+                                                                     r)]
+                         (log/debug "@register" (log/get-env))
+                         (when (apply = values)
+                           (do
+                             (log/trace "@register - duplicate module-fns" (log/get-env))
+                             (swap! local-register (fn [m]
+                                                        (dissoc m
+                                                                (first (rdf-fn/subject-object-by-predicate m :dms-def/function)))))))
+                         (swap! local-register conj rdf-content)))})
