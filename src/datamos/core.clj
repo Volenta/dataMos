@@ -8,7 +8,6 @@
             [taoensso.timbre.appenders.core :as appenders]))
 
 ; TODO - check if functions like dcom/sign-up-state-reference derive from an inconsistency between states, functions and namespaces.
-; TODO - make dataMos core available for prefix project
 
 (defn stop-nr
   "Given a number n, it runs all the states up and included to the amount of states stated by n.

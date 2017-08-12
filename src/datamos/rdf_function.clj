@@ -56,7 +56,8 @@
   "Provide a predicate and multiple triple maps. Returns sequence of values for predicate"
   [predicate & maps]
   (for [m maps]
-    (if (empty? m)
-      false
-      (value-from-nested-map
-        (predicate-filter m #{predicate})))))
+    (when (seq m)
+      (map
+        (fn [x] (value-from-nested-map
+                  (predicate-filter (conj {} x) #{:dms-def/function})))
+        m))))
