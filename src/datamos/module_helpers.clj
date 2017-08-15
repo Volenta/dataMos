@@ -21,7 +21,8 @@
                                 values      (rdf-fn/values-by-predicate :dms-def/function
                                                                         rdf-content
                                                                         r)]
-                            (log/debug "@register" (log/get-env))
+                            (log/debug "@register" rdf-content r values)
+                            (log/trace "@register" (log/get-env))
                             (when (apply = values)
                               (do
                                 (log/trace "@register - duplicate module-fns" (log/get-env))

@@ -45,7 +45,7 @@
   (do
     (log/merge-config!
       {:appenders
-       {:println {:min-level :info}
+       {:println {:min-level :debug}
         :spit (merge (appenders/spit-appender {:fname "log/datamos.log"})
                      {:min-level :trace})}}))
     (log/info "@go - Starting dataMos")

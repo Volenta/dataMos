@@ -36,6 +36,7 @@
                         response
                         [:dmsfn-def/registry :datamos-fn/de-register])
         content (rdf-cnt/rdf-triple subject :dms-def/apply f)]
+    (log/debug "@de-register-component" subject response recipient f content)
     (log/trace "@de-register-component" (log/get-env))
     (dcom/speak conn-settings ex-settings component-settings recipient :dmsfn-def/module-id f content)))
 

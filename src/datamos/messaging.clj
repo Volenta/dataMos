@@ -84,6 +84,7 @@
   [f m conn-settings ks]
   (let [params (mapv m ks)
         chan   (remote-channel conn-settings)]
+    (log/debug "@provide-channel" m params ks)
     (log/trace "@provide-channel" (log/get-env))
     (->> (apply f chan params)
          (close chan))))
@@ -96,6 +97,7 @@
             (let [qualified-name (u/component->queue-name settings-map)
                   queue-map      {:datamos/queue-name qualified-name}
                   s              (merge queue-map queue-conf)] s))]
+    (log/debug "@set-queue" v)
     (log/trace "@set-queue" (log/get-env))
     (provide-channel lq/declare
                      v
@@ -149,6 +151,7 @@
         header-matching {"x-match" "any"}
         args            {:arguments (conj routing-args header-matching)}
         s               (merge exch (assoc q :datamos/binding args))]
+    (log/debug "@bind-queue" cs-subset routing-vals routing-args header-matching args s)
     (log/trace "@bind-queue" (log/get-env))
     (provide-channel lq/bind
                      s
@@ -172,30 +175,34 @@
 
 (defn send-message-by-header
   [conn-settings exchange-settings message]
-  (let [predicate #{:dmsfn-def/module-id}
-        msg-header (:datamos/logistic message)
-        [rcpt-type rcpt] (first (rdf-fn/get-predicate-object-map (rdf-fn/predicate-filter msg-header predicate)))
-        m (nippy/freeze message)]
+  (do
+    (log/debug "@send-message-by-header" message)
     (log/trace "@send-message-by-header" (log/get-env))
-    (apply lb/publish
-           (remote-channel conn-settings)
-           (:datamos/exchange-name exchange-settings)
-           ["" m {:headers (conj {}
-                                 (mapv u/keyword->string
-                                       [rcpt-type rcpt]))}])))
+    (let [predicate  #{:dmsfn-def/module-id}
+          msg-header (:datamos/logistic message)
+          [rcpt-type rcpt] (first (rdf-fn/get-predicate-object-map (rdf-fn/predicate-filter msg-header predicate)))
+          m          (nippy/freeze message)]
+      (apply lb/publish
+             (remote-channel conn-settings)
+             (:datamos/exchange-name exchange-settings)
+             ["" m {:headers (conj {}
+                                   (mapv u/keyword->string
+                                         [rcpt-type rcpt]))}]))))
 
 (defn send-message-by-queue
   [conn-settings exchange-settings message]
-  (let [predicate #{:dmscfg-def/rcpt-queue}
-        msg-header (:datamos/logistic message)
-        destination (rdf-fn/value-from-nested-map (rdf-fn/predicate-filter msg-header predicate))
-        m (nippy/freeze message)]
+  (do
+    (log/debug "@send-message-by-queue" message)
     (log/trace "@send-message-by-queue" (log/get-env))
-    (lb/publish
-      (remote-channel conn-settings)
-      (:datamos/exchange-name exchange-settings)
-      destination
-      m)))
+    (let [predicate   #{:dmscfg-def/rcpt-queue}
+          msg-header  (:datamos/logistic message)
+          destination (rdf-fn/value-from-nested-map (rdf-fn/predicate-filter msg-header predicate))
+          m           (nippy/freeze message)]
+      (lb/publish
+        (remote-channel conn-settings)
+        (:datamos/exchange-name exchange-settings)
+        destination
+        m))))
 
 (defn send-message
   [conn-settings exchange-settings message]

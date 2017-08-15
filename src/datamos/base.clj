@@ -16,7 +16,6 @@
   (let [{:keys [:dmsfn-def/module-name
                 :dmsfn-def/module-type
                 :dms-def/provides
-                :dms-def/function
                 :datamos/local-register]
          :or   {module-type :dmsfn-def/enrichment
                 module-name :dmsfn-def/module}} settings]
@@ -25,6 +24,6 @@
                                                   :dmsfn-def/module-name  module-name
                                                   :dms-def/provides       provides
                                                   :datamos/local-register local-register
-                                                  :rdf/type               :dmsfn-def/module-id}}))
+                                                  :rdf/type               :dmsfn-def/module}}))
 
 (defstate ^{:on-reload :noop} component :start (set-component @component-config))

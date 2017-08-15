@@ -78,6 +78,7 @@
              (message-receipient component-settings rcpt rcpt-type)
              (message-receipient rcpt))
          s (message-sender component-settings)]
+     (log/debug "@compose-rdf-message" subject content rcpt rcpt-type m-id r s)
      (log/trace "@compose-rdf-message" (log/get-env))
      {:datamos/logistic    (conj r s
                                  {:dms-def/message {:dms-def/subject subject

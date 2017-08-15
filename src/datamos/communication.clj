@@ -50,14 +50,18 @@
 (defn generate-message-minus-prefixes
   "Returns a message, with header and contents."
   [component-settings subject content rcpt rcpt-type m-id]
-  (if content
-    (rdf-cnt/compose-rdf-message component-settings subject content rcpt rcpt-type m-id)
-    (create-config-message component-settings)))
+  (do
+    (log/debug "@generate-message-minus-prefixes" subject content rcpt rcpt-type m-id)
+    (log/trace "@generate-message-minus-prefixes" (log/get-env))
+    (if content
+      (rdf-cnt/compose-rdf-message component-settings subject content rcpt rcpt-type m-id)
+      (create-config-message component-settings))))
 
 (defn store-message
   "Stores message while retrieving prefixes."
   [connection-settings exchange-settings component-settings subject content rcpt rcpt-type]
   (let [m-id (rdf-cnt/generate-message-id)]
+    (log/debug "@store-message"  subject content rcpt rcpt-type)
     (log/trace "@store-message" (log/get-env))
     (retrieve-prefix-list connection-settings exchange-settings component-settings content m-id)
     (swap! message-store assoc m-id
@@ -67,6 +71,7 @@
   "Generates a message with an unique ID, just for this message"
   [connection-settings exchange-settings component-settings subject content rcpt rcpt-type]
   (let [m-id (rdf-cnt/generate-message-id)]
+    (log/debug "@generate-message-with-one-time-id"  subject content rcpt rcpt-type)
     (log/trace "@generate-message-with-one-time-id" (log/get-env))
     (dm/send-message connection-settings exchange-settings
                      (generate-message-minus-prefixes component-settings subject content rcpt rcpt-type m-id))))
@@ -76,6 +81,7 @@
   [connection-settings exchange-settings content]
   (let [m-id (rdf-fn/get-message-id-from-content content)
         m    (@message-store m-id)]
+    (log/debug "@get-from-message-store" content m-id m)
     (log/trace "@get-from-message-store" (log/get-env))
     (swap! message-store dissoc m-id)
     (dm/send-message connection-settings exchange-settings m)))
@@ -87,11 +93,14 @@
   ([connection-settings exchange-settings component-settings]
    (speak connection-settings exchange-settings component-settings nil nil nil nil))
   ([connection-settings exchange-settings component-settings rcpt rcpt-type subject content]
-   (case subject
-     :datamos-fn/match-prefix (generate-message-with-one-time-id connection-settings exchange-settings component-settings subject content rcpt rcpt-type)
-     :datamos-fn/prefix-list (generate-message-with-one-time-id connection-settings exchange-settings component-settings subject content rcpt rcpt-type)
-     :datamos-fn/retrieve-message (get-from-message-store connection-settings exchange-settings content)
-     (store-message connection-settings exchange-settings component-settings subject content rcpt rcpt-type))))
+   (do
+     (log/debug "@speak"  rcpt rcpt-type subject content)
+     (log/trace "@speak" (log/get-env))
+     (case subject
+      :datamos-fn/match-prefix (generate-message-with-one-time-id connection-settings exchange-settings component-settings subject content rcpt rcpt-type)
+      :datamos-fn/prefix-list (generate-message-with-one-time-id connection-settings exchange-settings component-settings subject content rcpt rcpt-type)
+      :datamos-fn/retrieve-message (get-from-message-store connection-settings exchange-settings content)
+      (store-message connection-settings exchange-settings component-settings subject content rcpt rcpt-type)))))
 
 (defn get-prefix-matches
   [speak-conn exchange-settings module-settings rdf-map msg-id]
@@ -99,7 +108,7 @@
          exchange-settings
          module-settings
          :dmsfn-def/prefix
-         :dmsfn-def/module-id
+         :dmsfn-def/module-name
          :datamos-fn/match-prefix
          {:dms-def/message {:dms-def/namespaces (hlp/retrieve-prefixes rdf-map)
                             :dms-def/message-id msg-id}}))
@@ -125,7 +134,8 @@
   (let [chan (:datamos/listen-channel ch-map)]
     (fn [ch meta ^bytes payload]
       (do
-        (log/debug "@channel-message" (log/get-env))
+        (log/debug "@channel-message" meta)
+        (log/trace "@channel-message" (log/get-env))
         (async/put! chan [ch meta payload])))))
 
 (defn listen
@@ -167,6 +177,7 @@
                       msg-header (:datamos/logistic message)
                       subject (rdf-fn/value-from-nested-map
                                 (rdf-fn/predicate-filter msg-header #{:dms-def/subject}))]
+                  (log/debug "@response" message msg-header subject)
                   (log/trace "@response" (log/get-env))
                   ((fn-map subject println) ch meta message)))
       (do
