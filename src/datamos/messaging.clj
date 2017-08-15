@@ -180,7 +180,7 @@
     (log/trace "@send-message-by-header" (log/get-env))
     (let [predicate  #{:dmsfn-def/module-name}
           msg-header (:datamos/logistic message)
-          [rcpt-type rcpt] (apply #(select-keys % predicate) (rdf-fn/get-predicate-object-map-by-value msg-header :dms-def/recipient))
+          [rcpt-type rcpt] (apply #(find % predicate) (rdf-fn/get-predicate-object-map-by-value msg-header :dms-def/recipient))
           m          (nippy/freeze message)]
       (apply lb/publish
              (remote-channel conn-settings)
