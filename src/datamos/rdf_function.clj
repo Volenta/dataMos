@@ -1,7 +1,8 @@
 (ns datamos.rdf-function
   "Contains functions working on RDF data-sets"
   (:require [datamos.util :as u]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [clojure.set :as set]))
 
 (defn generate-qualified-uri
   "Return unique uri, based on type-kw."
@@ -12,6 +13,13 @@
   "Takes a triple map. Returns the sub-map (= predicate and object)"
   [triple-map]
   (apply second triple-map))
+
+(defn get-predicate-object-map-by-value
+  "Returns the predicate-object-maps containing the value supplied."
+  [triple-map value]
+  (filter
+    #((set (vals %)) value)
+    (keys (set/map-invert triple-map))))
 
 (defn get-subject
   "takes a triple map. Returns the subject"
