@@ -42,7 +42,7 @@
         :quads (s/map-of #{:datamos/quads} ::named-graphs :min-count 1)))
 
 (s/def ::logis-props
-  (s/map-of #{:datamos/rcpt-fn} keyword?))
+  (s/map-of #{:dms-def/rcpt-fn} keyword?))
 
 (s/def ::message
   (s/or :rdf (s/map-of #{:datamos/rdf-content} ::rdf-content)

@@ -13,18 +13,18 @@
 (defn set-component
   "Returns component settings. With component-type, module-fn and module-uri as a submap of :datamos-cfg/module."
   [settings]
-  (let [{:keys [:datamos-cfg/module-fn
-                :datamos-cfg/module-type
+  (let [{:keys [:dmsfn-def/module-name
+                :dmsfn-def/module-type
                 :dms-def/provides
                 :dms-def/function
-                :datamos-cfg/local-register]
-         :or {module-type :datamos-fn/enrichment
-              module-fn :datamos-fn/function}} settings]
+                :datamos/local-register]
+         :or   {module-type :dmsfn-def/enrichment
+                module-name :dmsfn-def/module}} settings]
     (log/trace "@set-component" (log/get-env))
-    {(rdf-fn/generate-qualified-uri module-fn) {:datamos-cfg/module-type module-type
-                                                :datamos-cfg/module-fn   module-fn
-                                                :dms-def/provides           provides
-                                                :datamos-cfg/local-register local-register
-                                                :rdf/type                   :dms-def/module}}))
+    {(rdf-fn/generate-qualified-uri module-name) {:dmsfn-def/module-type  module-type
+                                                  :dmsfn-def/module-name  module-name
+                                                  :dms-def/provides       provides
+                                                  :datamos/local-register local-register
+                                                  :rdf/type               :dmsfn-def/module-id}}))
 
 (defstate ^{:on-reload :noop} component :start (set-component @component-config))

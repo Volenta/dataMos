@@ -2,7 +2,8 @@
   (:require [datamos
              [messaging :as dm]
              [rdf-content :as rdf-cnt]
-             [rdf-function :as rdf-fn]]
+             [rdf-function :as rdf-fn]
+             [module-helpers :as hlp]]
             [langohr
              [consumers :as lc]
              [basic :as lb]]
@@ -13,6 +14,10 @@
             [mount.core :as mnt :refer [defstate]]
             [taoensso.timbre :as log]))
 
+(declare get-prefix-matches)
+
+(def message-store (atom {}))
+
 (def default-consumer-settings
   "Default settings for the component consuming messages from the queue"
   {:auto-ack true :exclusive false})
@@ -21,22 +26,83 @@
   [component-settings]
   (do
     (log/trace "@create-config-message" (log/get-env))
-    (rdf-cnt/compose-rdf-message component-settings :datamos/registration (rdf-cnt/sign-up component-settings) "config.datamos-fn")))
+    (rdf-cnt/compose-rdf-message component-settings :datamos-fn/registration (rdf-cnt/sign-up component-settings) "config.datamos-fn")))
+
+; TODO - add prefix to message
+; TODO - send message to prefix module
+; TODO - define difference between prefix message and non-prefix message
+;      - message with :datamos/match-prefix as a subject
+; TODO - define what messages will be stored and what messages will be send
+;      - messages with empty prefix lists and a subject different from :datamos/match-prefix will be stored
+; TODO - figure out the conditions in speak
+;      - condition kw = :datamos/match-prefix -> send message
+;      - condition prefix-list is empty -> store message
+;      - condition kw = :datamos/retrieve-message -> retrieve message from store
+;      - other conditions -> send message
+; TODO - Keep subject from original (non :datamos/match-prefix) subject
+
+
+(defn retrieve-prefix-list
+  "Gets namespaces from content and calls speak to send message for a list of prefixes"
+  [connection-settings exchange-settings component-settings content m-id]
+  (async/go (get-prefix-matches connection-settings exchange-settings component-settings content m-id)))
+
+(defn generate-message-minus-prefixes
+  "Returns a message, with header and contents."
+  [component-settings subject content rcpt rcpt-type m-id]
+  (if content
+    (rdf-cnt/compose-rdf-message component-settings subject content rcpt rcpt-type m-id)
+    (create-config-message component-settings)))
+
+(defn store-message
+  "Stores message while retrieving prefixes."
+  [connection-settings exchange-settings component-settings subject content rcpt rcpt-type]
+  (let [m-id (rdf-cnt/generate-message-id)]
+    (log/trace "@store-message" (log/get-env))
+    (retrieve-prefix-list connection-settings exchange-settings component-settings content m-id)
+    (swap! message-store assoc m-id
+           (generate-message-minus-prefixes component-settings subject content rcpt rcpt-type m-id))))
+
+(defn generate-message-with-one-time-id
+  "Generates a message with an unique ID, just for this message"
+  [connection-settings exchange-settings component-settings subject content rcpt rcpt-type]
+  (let [m-id (rdf-cnt/generate-message-id)]
+    (log/trace "@generate-message-with-one-time-id" (log/get-env))
+    (dm/send-message connection-settings exchange-settings
+                     (generate-message-minus-prefixes component-settings subject content rcpt rcpt-type m-id))))
+
+(defn get-from-message-store
+  "Get stored message from the message store"
+  [connection-settings exchange-settings content]
+  (let [m-id (rdf-fn/get-message-id-from-content content)
+        m    (@message-store m-id)]
+    (log/trace "@get-from-message-store" (log/get-env))
+    (swap! message-store dissoc m-id)
+    (dm/send-message connection-settings exchange-settings m)))
 
 (defn speak
   "Send message to another component. Component-settings is a map containing the :datamos-cfg/module-uri key.
   content is the message to be send, the rcpt is the receipient. Msg-format is :rdf or :config,
   depending on the provided content."
   ([connection-settings exchange-settings component-settings]
-   (do
-     (log/trace "@speak - 3arity" (log/get-env))
-     (speak connection-settings exchange-settings component-settings nil nil nil nil)))
+   (speak connection-settings exchange-settings component-settings nil nil nil nil))
   ([connection-settings exchange-settings component-settings rcpt rcpt-type subject content]
-   (let [m (if content
-             (rdf-cnt/compose-rdf-message component-settings subject content rcpt rcpt-type)
-             (create-config-message component-settings))]
-     (log/debug "@speak - 7arity" (log/get-env))
-     (dm/send-message connection-settings exchange-settings m))))
+   (case subject
+     :datamos-fn/match-prefix (generate-message-with-one-time-id connection-settings exchange-settings component-settings subject content rcpt rcpt-type)
+     :datamos-fn/prefix-list (generate-message-with-one-time-id connection-settings exchange-settings component-settings subject content rcpt rcpt-type)
+     :datamos-fn/retrieve-message (get-from-message-store connection-settings exchange-settings content)
+     (store-message connection-settings exchange-settings component-settings subject content rcpt rcpt-type))))
+
+(defn get-prefix-matches
+  [speak-conn exchange-settings module-settings rdf-map msg-id]
+  (speak speak-conn
+         exchange-settings
+         module-settings
+         :dmsfn-def/prefix
+         :dmsfn-def/module-id
+         :datamos-fn/match-prefix
+         {:dms-def/message {:dms-def/namespaces (hlp/retrieve-prefixes rdf-map)
+                            :dms-def/message-id msg-id}}))
 
 (defstate ^{:on-reload :noop} speak-connection
           :start (dm/rmq-connection)
@@ -49,14 +115,14 @@
 (defn channel
   []
   (let [ch (async/chan)]
-    {:datamos-cfg/listen-channel ch}))
+    {:datamos/listen-channel ch}))
 
 (defstate local-channel
           :start (channel))
 
 (defn channel-message
   [ch-map]
-  (let [chan (:datamos-cfg/listen-channel ch-map)]
+  (let [chan (:datamos/listen-channel ch-map)]
     (fn [ch meta ^bytes payload]
       (do
         (log/debug "@channel-message" (log/get-env))
@@ -64,28 +130,28 @@
 
 (defn listen
   [conn-settings local-ch-settings queue-settings]
-  (let [dp   {:datamos-cfg/dispatch (channel-message local-ch-settings)}
-        cset {:datamos-cfg/consumer-settings default-consumer-settings}
+  (let [dp   {:datamos/dispatch (channel-message local-ch-settings)}
+        cset {:datamos/consumer-settings default-consumer-settings}
         q queue-settings
-        ch {:datamos-cfg/remote-channel (dm/remote-channel conn-settings)}
+        ch {:datamos/remote-channel (dm/remote-channel conn-settings)}
         s (merge dp cset q ch)
         tag  (apply lc/subscribe
                     (mapv
                       s
-                      [:datamos-cfg/remote-channel
-                       :datamos-cfg/queue-name
-                       :datamos-cfg/dispatch
-                       :datamos-cfg/consumer-settings]))]
-    (merge s {:datamos-cfg/listener-tag tag})))
+                      [:datamos/remote-channel
+                       :datamos/queue-name
+                       :datamos/dispatch
+                       :datamos/consumer-settings]))]
+    (merge s {:datamos/listener-tag tag})))
 
 (defn close-listen
   [settings]
   (apply lb/cancel
          (mapv
            settings
-           [:datamos-cfg/remote-channel
-            :datamos-cfg/listener-tag]))
-  (dm/close (:datamos-cfg/remote-channel settings)))
+           [:datamos/remote-channel
+            :datamos/listener-tag]))
+  (dm/close (:datamos/remote-channel settings)))
 
 (defstate listener
           :start (listen dm/connection local-channel dm/queue)
@@ -96,7 +162,7 @@
   (async/go
     (if-let [fn-map (:dms-def/provides (rdf-fn/get-predicate-object-map settings-map))]
       (while true
-                (let [[ch meta payload] (async/<! (:datamos-cfg/listen-channel ch-map))
+                (let [[ch meta payload] (async/<! (:datamos/listen-channel ch-map))
                       message (nippy/thaw payload)
                       msg-header (:datamos/logistic message)
                       subject (rdf-fn/value-from-nested-map

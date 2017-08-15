@@ -16,12 +16,12 @@
 (defn de-register-uri
   [component-settings]
   (let [predicate :dms-def/provides
-        lr (:datamos-cfg/local-register
+        lr (:datamos/local-register
              (rdf-fn/get-predicate-object-map component-settings))]
     (if (seq lr)
       (apply (fn [x y]
                [x (if (set? y)
-                    (y :datamos/de-register)
+                    (y :datamos-fn/de-register)
                     y)])
              (rdf-fn/subject-object-by-predicate
                (rdf-fn/predicate-filter lr #{predicate}) predicate))
@@ -34,10 +34,10 @@
         response (de-register-uri component-settings)
         [recipient f] (if response
                         response
-                        [:datamos-fn/registry :datamos/de-register])
+                        [:dmsfn-def/registry :datamos-fn/de-register])
         content (rdf-cnt/rdf-triple subject :dms-def/apply f)]
     (log/trace "@de-register-component" (log/get-env))
-    (dcom/speak conn-settings ex-settings component-settings recipient :dms-def/module f content)))
+    (dcom/speak conn-settings ex-settings component-settings recipient :dmsfn-def/module-id f content)))
 
 (defstate signing-up
           :start (apply initialize-registration (dcom/sign-up-state-reference))

@@ -27,7 +27,7 @@
 
 (def exchange-types
   "Select one to define the way the exchange functions"
-  {:datamos-cfg/direct "direct" :datamos-cfg/fanout "fanout" :datamos-cfg/topic "topic" :datamos-cfg/headers "headers"})
+  {:datamos/direct "direct" :datamos/fanout "fanout" :datamos/topic "topic" :datamos/headers "headers"})
 
 (def default-exchange-settings
   "Defautl settings for the exchange"
@@ -38,15 +38,15 @@
   {:durable true :auto-delete false :exclusive false})
 
 (def exchange-conf
-  (let [ex-type     (:datamos-cfg/headers exchange-types)
+  (let [ex-type     (:datamos/headers exchange-types)
         ex-settings default-exchange-settings]
-    {:datamos-cfg/exchange-name     "dataMos-ex"
-     :datamos-cfg/exchange-type     ex-type
-     :datamos-cfg/exchange-settings ex-settings}))
+    {:datamos/exchange-name     "dataMos-ex"
+     :datamos/exchange-type     ex-type
+     :datamos/exchange-settings ex-settings}))
 
 (def queue-conf
   (let [qu-settings default-queue-settings]
-    {:datamos-cfg/queue-settings qu-settings}))
+    {:datamos/queue-settings qu-settings}))
 
 (defn base-component-state-reference
   []
@@ -93,23 +93,23 @@
 (defn set-queue
   "Create and name an RabbitMQ Queue. Return map with queue settings"
   [conn-settings settings-map]
-  (let [v (if (settings-map :datamos-cfg/queue-name nil)
+  (let [v (if (settings-map :datamos/queue-name nil)
             (let [s (merge settings-map queue-conf)] s)
             (let [qualified-name (u/component->queue-name settings-map)
-                  queue-map      {:datamos-cfg/queue-name qualified-name}
+                  queue-map      {:datamos/queue-name qualified-name}
                   s              (merge queue-map queue-conf)] s))]
     (log/trace "@set-queue" (log/get-env))
     (provide-channel lq/declare
                      v
                      conn-settings
-                     [:datamos-cfg/queue-name
-                      :datamos-cfg/queue-settings])
+                     [:datamos/queue-name
+                      :datamos/queue-settings])
     v))
 
 (defn remove-queue
-  "Removes queue based on :datamos-cfg/queue-name key as supplied by settings map."
+  "Removes queue based on :datamos/queue-name key as supplied by settings map."
   [conn-settings settings]
-  (provide-channel lq/delete settings conn-settings [:datamos-cfg/queue-name]))
+  (provide-channel lq/delete settings conn-settings [:datamos/queue-name]))
 
 (defstate queue
           :start (set-queue connection base/component)
@@ -123,9 +123,9 @@
     (provide-channel le/declare
                      exchange-conf
                      conn-settings
-                     [:datamos-cfg/exchange-name
-                      :datamos-cfg/exchange-type
-                      :datamos-cfg/exchange-settings])
+                     [:datamos/exchange-name
+                      :datamos/exchange-type
+                      :datamos/exchange-settings])
     exchange-conf))
 
 (defn remove-exchange
@@ -134,7 +134,7 @@
   (provide-channel le/delete
                    settings
                    conn-settings
-                   [:datamos-cfg/exchange-name]))
+                   [:datamos/exchange-name]))
 
 (defstate ^{:on-reload :noop} exchange
           :start (set-exchange connection)
@@ -142,22 +142,22 @@
 
 (defn bind-queue
   [conn-settings component-settings exch q]
-  (let [cs-subset (((first component-settings) 0) component-settings)
+  (let [cs-subset (rdf-fn/get-predicate-object-map component-settings)
         routing-vals (into (select-keys cs-subset
-                                        [:datamos-cfg/module-type
-                                         :datamos-cfg/module-fn])
-                           [[(:rdf/type cs-subset) ((first component-settings) 0)]])
+                                        [:dmsfn-def/module-type
+                                         :dmsfn-def/module-name])
+                           [[(:rdf/type cs-subset) (rdf-fn/get-subject component-settings)]])
         routing-args    (into {} (map #(mapv u/keyword->string %) routing-vals))
         header-matching {"x-match" "any"}
         args            {:arguments (conj routing-args header-matching)}
-        s               (merge exch (assoc q :datamos-cfg/binding args))]
+        s               (merge exch (assoc q :datamos/binding args))]
     (log/trace "@bind-queue" (log/get-env))
     (provide-channel lq/bind
                      s
                      conn-settings
-                     [:datamos-cfg/queue-name
-                      :datamos-cfg/exchange-name
-                      :datamos-cfg/binding])
+                     [:datamos/queue-name
+                      :datamos/exchange-name
+                      :datamos/binding])
     s))
 
 (defn remove-binding
@@ -165,8 +165,8 @@
   (provide-channel lq/unbind
                    settings
                    conn-settings
-                   [:datamos-cfg/queue-name
-                    :datamos-cfg/exchange-name]))
+                   [:datamos/queue-name
+                    :datamos/exchange-name]))
 
 (defstate bind
           :start (bind-queue connection base/component exchange queue)
@@ -174,34 +174,34 @@
 
 (defn send-message-by-header
   [conn-settings exchange-settings message]
-  (let [predicate #{:dms-def/module}
+  (let [predicate #{:dmsfn-def/module-id}
         msg-header (:datamos/logistic message)
         [rcpt-type rcpt] (first (rdf-fn/get-predicate-object-map (rdf-fn/predicate-filter msg-header predicate)))
         m (nippy/freeze message)]
     (log/trace "@send-message-by-header" (log/get-env))
     (apply lb/publish
            (remote-channel conn-settings)
-           (:datamos-cfg/exchange-name exchange-settings)
+           (:datamos/exchange-name exchange-settings)
            ["" m {:headers (conj {}
                                  (mapv u/keyword->string
                                        [rcpt-type rcpt]))}])))
 
 (defn send-message-by-queue
   [conn-settings exchange-settings message]
-  (let [predicate #{:datamos-cfg/rcpt-queue}
+  (let [predicate #{:dmscfg-def/rcpt-queue}
         msg-header (:datamos/logistic message)
         destination (rdf-fn/value-from-nested-map (rdf-fn/predicate-filter msg-header predicate))
         m (nippy/freeze message)]
     (log/trace "@send-message-by-queue" (log/get-env))
     (lb/publish
       (remote-channel conn-settings)
-      (:datamos-cfg/exchange-name exchange-settings)
+      (:datamos/exchange-name exchange-settings)
       destination
       m)))
 
 (defn send-message
   [conn-settings exchange-settings message]
-  (let [predicate #{:datamos-cfg/rcpt-queue}
+  (let [predicate #{:dmscfg-def/rcpt-queue}
         msg-header (:datamos/logistic message)]
     (if (empty? (rdf-fn/predicate-filter msg-header predicate))
       (do (log/trace "@send-message - by headers" (log/get-env))
@@ -210,5 +210,5 @@
                                   message))
       (do (log/trace "@send-message - by queue" (log/get-env))
           (send-message-by-queue conn-settings
-                                 {:datamos-cfg/exchange-name ""}
+                                 {:datamos/exchange-name ""}
                                  message)))))
