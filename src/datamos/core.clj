@@ -8,6 +8,14 @@
             [taoensso.timbre.appenders.core :as appenders]))
 
 ; TODO - check if functions like dcom/sign-up-state-reference derive from an inconsistency between states, functions and namespaces.
+; TODO - Check if meta information to maps is serializable by EDN.
+; TODO - Update Config module to use the latest version of dataMos
+; TODO - Work on Prefix module
+; TODO - Buid HTTP module
+; TODO - Build Query module
+; TODO - Build Transform module
+; TODO - Build GUI module
+; TODO - Build Mint module
 
 (defn stop-nr
   "Given a number n, it runs all the states up and included to the amount of states stated by n.

@@ -19,8 +19,6 @@
             [taoensso.timbre :as log])
   (:import [com.rabbitmq.client AlreadyClosedException]))
 
-; TODO - Check if meta information to maps is serializable by EDN.
-
 (def connection-object-set
   #{com.novemberain.langohr.Connection
     com.rabbitmq.client.impl.recovery.AutorecoveringChannel})
