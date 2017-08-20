@@ -3,7 +3,8 @@
              [messaging :as dm]
              [rdf-content :as rdf-cnt]
              [rdf-function :as rdf-fn]
-             [module-helpers :as hlp]]
+             [module-helpers :as hlp]
+             [msg-functions :as msg-fn]]
             [langohr
              [consumers :as lc]
              [basic :as lb]]
@@ -16,7 +17,11 @@
 
 (declare get-prefix-matches)
 
-(def message-store (atom {}))
+(def register-fn-keywords
+  #{:datamos-fn/registration
+    :datamos-fn/de-register
+    :datamos-fn/registry
+    nil})
 
 (def default-consumer-settings
   "Default settings for the component consuming messages from the queue"
@@ -27,20 +32,6 @@
   (do
     (log/trace "@create-config-message" (log/get-env))
     (rdf-cnt/compose-rdf-message component-settings :datamos-fn/registration (rdf-cnt/sign-up component-settings) "config.datamos-fn")))
-
-; TODO - add prefix to message
-; TODO - send message to prefix module
-; TODO - define difference between prefix message and non-prefix message
-;      - message with :datamos/match-prefix as a subject
-; TODO - define what messages will be stored and what messages will be send
-;      - messages with empty prefix lists and a subject different from :datamos/match-prefix will be stored
-; TODO - figure out the conditions in speak
-;      - condition kw = :datamos/match-prefix -> send message
-;      - condition prefix-list is empty -> store message
-;      - condition kw = :datamos/retrieve-message -> retrieve message from store
-;      - other conditions -> send message
-; TODO - Keep subject from original (non :datamos/match-prefix) subject
-
 
 (defn retrieve-prefix-list
   "Gets namespaces from content and calls speak to send message for a list of prefixes"
@@ -60,31 +51,22 @@
 (defn store-message
   "Stores message while retrieving prefixes."
   [connection-settings exchange-settings component-settings subject content rcpt rcpt-type]
-  (let [m-id (rdf-cnt/generate-message-id)]
-    (log/debug "@store-message"  subject content rcpt rcpt-type)
+  (let [m-id    (rdf-cnt/generate-message-id)
+        message (generate-message-minus-prefixes component-settings subject content rcpt rcpt-type m-id)
+        cnt     (rdf-fn/message-content message)]
+    (log/debug "@store-message" subject content rcpt rcpt-type)
     (log/trace "@store-message" (log/get-env))
-    (retrieve-prefix-list connection-settings exchange-settings component-settings content m-id)
-    (swap! message-store assoc m-id
-           (generate-message-minus-prefixes component-settings subject content rcpt rcpt-type m-id))))
+    (retrieve-prefix-list connection-settings exchange-settings component-settings cnt m-id)
+    (swap! msg-fn/message-store assoc m-id message)))
 
 (defn generate-message-with-one-time-id
   "Generates a message with an unique ID, just for this message"
   [connection-settings exchange-settings component-settings subject content rcpt rcpt-type]
   (let [m-id (rdf-cnt/generate-message-id)]
-    (log/debug "@generate-message-with-one-time-id"  subject content rcpt rcpt-type)
+    (log/debug "@generate-message-with-one-time-id" subject content rcpt rcpt-type)
     (log/trace "@generate-message-with-one-time-id" (log/get-env))
     (dm/send-message connection-settings exchange-settings
                      (generate-message-minus-prefixes component-settings subject content rcpt rcpt-type m-id))))
-
-(defn get-from-message-store
-  "Get stored message from the message store"
-  [connection-settings exchange-settings content]
-  (let [m-id (rdf-fn/get-message-id-from-content content)
-        m    (@message-store m-id)]
-    (log/debug "@get-from-message-store" content m-id m)
-    (log/trace "@get-from-message-store" (log/get-env))
-    (swap! message-store dissoc m-id)
-    (dm/send-message connection-settings exchange-settings m)))
 
 (defn speak
   "Send message to another component. Component-settings is a map containing the :datamos-cfg/module-uri key.
@@ -94,13 +76,13 @@
    (speak connection-settings exchange-settings component-settings nil nil nil nil))
   ([connection-settings exchange-settings component-settings rcpt rcpt-type subject content]
    (do
-     (log/debug "@speak"  rcpt rcpt-type subject content)
+     (log/debug "@speak" "\n rcpt:" rcpt "\n   rcpt-type:" rcpt-type "\n   subject:" subject "\n   content:" content)
      (log/trace "@speak" (log/get-env))
-     (case subject
-      :datamos-fn/match-prefix (generate-message-with-one-time-id connection-settings exchange-settings component-settings subject content rcpt rcpt-type)
-      :datamos-fn/prefix-list (generate-message-with-one-time-id connection-settings exchange-settings component-settings subject content rcpt rcpt-type)
-      :datamos-fn/retrieve-message (get-from-message-store connection-settings exchange-settings content)
-      (store-message connection-settings exchange-settings component-settings subject content rcpt rcpt-type)))))
+     (cond
+       (contains? register-fn-keywords subject) (generate-message-with-one-time-id connection-settings exchange-settings component-settings subject content rcpt rcpt-type)
+       (= :datamos-fn/match-prefix subject) (generate-message-with-one-time-id connection-settings exchange-settings component-settings subject content rcpt rcpt-type)
+       (= :datamos-fn/prefix-list subject) (generate-message-with-one-time-id connection-settings exchange-settings component-settings subject content rcpt rcpt-type)
+       :else (store-message connection-settings exchange-settings component-settings subject content rcpt rcpt-type)))))
 
 (defn get-prefix-matches
   [speak-conn exchange-settings module-settings rdf-map msg-id]
@@ -142,9 +124,9 @@
   [conn-settings local-ch-settings queue-settings]
   (let [dp   {:datamos/dispatch (channel-message local-ch-settings)}
         cset {:datamos/consumer-settings default-consumer-settings}
-        q queue-settings
-        ch {:datamos/remote-channel (dm/remote-channel conn-settings)}
-        s (merge dp cset q ch)
+        q    queue-settings
+        ch   {:datamos/remote-channel (dm/remote-channel conn-settings)}
+        s    (merge dp cset q ch)
         tag  (apply lc/subscribe
                     (mapv
                       s
@@ -167,10 +149,18 @@
           :start (listen dm/connection local-channel dm/queue)
           :stop (close-listen listener))
 
+(defn add-message-prefixes
+  [_ _ message]
+  (let [content (rdf-fn/message-content message)]
+    (msg-fn/get-from-message-store speak-connection dm/exchange content)))
+
+(def base-functions {:datamos-fn/prefix-list add-message-prefixes})
+
 (defn response
   [ch-map settings-map]
   (async/go
-    (if-let [fn-map (:dms-def/provides (rdf-fn/get-predicate-object-map settings-map))]
+    (if-let [fn-map
+             (into base-functions (:dms-def/provides (rdf-fn/get-predicate-object-map settings-map)))]
       (while true
                 (let [[ch meta payload] (async/<! (:datamos/listen-channel ch-map))
                       message (nippy/thaw payload)
@@ -179,7 +169,7 @@
                                 (rdf-fn/predicate-filter msg-header #{:dms-def/subject}))]
                   (log/debug "@response" message msg-header subject)
                   (log/trace "@response" (log/get-env))
-                  ((fn-map subject println) ch meta message)))
+                  ((fn-map subject #(println "@response - No function available for message subject:" subject)) ch meta message)))
       (do
         (log/warn "A map with functions is unavailable. Unable to fulfill the request")
         (log/trace "@response - No function map" (log/get-env))))))

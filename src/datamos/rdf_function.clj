@@ -57,6 +57,13 @@
   (get-in message
           [:datamos/rdf-content :datamos/triples]))
 
+(defn message-header
+  "takes a message and retrieves the message content, for RDF messages"
+  [message]
+  (get-in message
+          [:datamos/logistic]))
+
+
 (defn subject-object-by-predicate
   "Provide triple-map and predicate. Returns vector of subject and object."
   [m predicate]
@@ -76,8 +83,3 @@
           (fn [x] (value-from-nested-map
                     (predicate-filter (conj {} x) #{:dms-def/function})))
           m)))))
-
-(defn get-message-id-from-content
-  "Returns the message id from the message content"
-  [message]
-  (:dms-def/message-id (:dms-def/message (:datamos/triples (:datamos/rdf-content message)))))

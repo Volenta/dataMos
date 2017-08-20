@@ -9,8 +9,6 @@
 
 ; TODO - check if functions like dcom/sign-up-state-reference derive from an inconsistency between states, functions and namespaces.
 ; TODO - Check if meta information to maps is serializable by EDN.
-; TODO - Update Config module to use the latest version of dataMos
-; TODO - Work on Prefix module
 ; TODO - Buid HTTP module
 ; TODO - Build Query module
 ; TODO - Build Transform module
@@ -37,8 +35,6 @@
   ([n s]
    (-> (mnt/only (take n (:started s)))
        mnt/start)))
-
-; --- Stop & Start system
 
 (defn go
   []

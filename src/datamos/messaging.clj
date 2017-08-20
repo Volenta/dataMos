@@ -146,7 +146,7 @@
         routing-vals (into (select-keys cs-subset
                                         [:dmsfn-def/module-type
                                          :dmsfn-def/module-name])
-                           [[(:rdf/type cs-subset) (rdf-fn/get-subject component-settings)]])
+                           [[:dmsfn-def/module-id (rdf-fn/get-subject component-settings)]])
         routing-args    (into {} (map #(mapv u/keyword->string %) routing-vals))
         header-matching {"x-match" "any"}
         args            {:arguments (conj routing-args header-matching)}
@@ -178,9 +178,11 @@
   (do
     (log/debug "@send-message-by-header" message)
     (log/trace "@send-message-by-header" (log/get-env))
-    (let [predicate  #{:dmsfn-def/module-name}
+    (let [predicates [:dmsfn-def/module-id :dmsfn-def/module-name :dmsfn-def/module-type]
           msg-header (:datamos/logistic message)
-          [rcpt-type rcpt] (apply #(find % predicate) (rdf-fn/get-predicate-object-map-by-value msg-header :dms-def/recipient))
+          [[[rcpt-type rcpt]]] (keep (fn [m]
+                                   (keep #(find m %) predicates))
+                                 (rdf-fn/get-predicate-object-map-by-value msg-header :dms-def/recipient))
           m          (nippy/freeze message)]
       (apply lb/publish
              (remote-channel conn-settings)
