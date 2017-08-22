@@ -34,7 +34,7 @@
         response (de-register-uri component-settings)
         [recipient f] (if response
                         response
-                        [:dmsfn-def/registry :datamos-fn/de-register])
+                        [:dmsfn-def/config :datamos-fn/de-register])
         content (rdf-cnt/rdf-triple subject :dms-def/apply f)]
     (log/debug "@de-register-component" subject response recipient f content)
     (log/trace "@de-register-component" (log/get-env))
