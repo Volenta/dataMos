@@ -5,7 +5,8 @@
              [core :as rmq]
              [queue :as lq]
              [exchange :as le]
-             [consumers :as lc]]
+             [consumers :as lc]
+             [shutdown :as ls]]
             [clojure
              [string :as str]
              [repl :refer :all]]
@@ -17,9 +18,10 @@
             [taoensso.nippy :as nippy]
             [mount.core :as mnt :refer [defstate]]
             [taoensso.timbre :as log])
-  (:import [com.rabbitmq.client AlreadyClosedException ShutdownSignalException]))
+  (:import [com.rabbitmq.client AlreadyClosedException ShutdownSignalException]
+           [java.io IOException]))
 
-(declare remove-binding bind)
+(declare remove-binding)
 
 (def connection-object-set
   #{com.novemberain.langohr.Connection
@@ -61,11 +63,13 @@
   Returns :already-closed in case of an Already Closed Exception"
   ([rmq-object] (try
                   (rmq/close rmq-object) :closed
-                  (catch AlreadyClosedException e nil :connection-already-closed)))
+                  (catch AlreadyClosedException e nil :connection-already-closed)
+                  (catch IOException e nil :connection-cannot-close)))
   ([rmq-object return]
    (try
      (rmq/close rmq-object) :closed
-     (catch AlreadyClosedException e nil :connection-already-closed))
+     (catch AlreadyClosedException e nil :connection-already-closed)
+     (catch IOException e nil :connection-cannot-close))
    return))
 
 (defstate ^{:on-reload :noop} connection
@@ -134,18 +138,13 @@
   "Removes the RabbitMQ Exchange"
   [conn-settings settings]
   (let [m (conj settings {:datamos/if-unused true})]
-    (remove-binding connection bind)
     (try
       (provide-channel le/delete
                        m
                        conn-settings
                        [:datamos/exchange-name
                         :datamos/if-unused])
-      (catch ShutdownSignalException e nil :bindings-attached-to-exchange))))
-
-(defstate ^{:on-reload :noop} exchange
-          :start (set-exchange connection)
-          :stop (remove-exchange connection exchange))
+      (catch IOException e nil :connection-cannot-close)))) ; exception when exchange is still in use, is not shown.
 
 (defn bind-queue
   [conn-settings component-settings exch q]
@@ -175,6 +174,10 @@
                    conn-settings
                    [:datamos/queue-name
                     :datamos/exchange-name]))
+
+(defstate ^{:on-reload :noop} exchange
+          :start (set-exchange connection)
+          :stop (remove-exchange connection exchange))
 
 (defstate bind
           :start (bind-queue connection base/component exchange queue)
