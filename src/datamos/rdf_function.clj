@@ -81,5 +81,5 @@
       (when (seq m)
         (map
           (fn [x] (value-from-nested-map
-                    (predicate-filter (conj {} x) #{:dms-def/function})))
+                    (predicate-filter (conj {} x) #{predicate})))
           m)))))
