@@ -15,7 +15,7 @@
             [mount.core :as mnt :refer [defstate]]
             [taoensso.timbre :as log]))
 
-(declare get-prefix-matches)
+(declare get-prefix-matches speak-connection local-channel listener responder)
 
 (def register-fn-keywords
   #{:datamos-fn/registration

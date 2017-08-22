@@ -7,6 +7,8 @@
             [taoensso.timbre :as log]
             [clojure.core.async :as async]))
 
+(declare signing-up)
+
 (defn initialize-registration
   [conn-settings ex-settings module-settings]
   (async/go

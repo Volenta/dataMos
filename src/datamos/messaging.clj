@@ -19,6 +19,8 @@
             [taoensso.timbre :as log])
   (:import [com.rabbitmq.client AlreadyClosedException]))
 
+(declare remove-binding bind connection exchange queue)
+
 (def connection-object-set
   #{com.novemberain.langohr.Connection
     com.rabbitmq.client.impl.recovery.AutorecoveringChannel})
@@ -132,6 +134,7 @@
   "Removes the RabbitMQ Exchange"
   [conn-settings settings]
   (let [m (conj settings {:datamos/if-unused true})]
+    (remove-binding connection bind)
     (provide-channel le/delete
                      m
                      conn-settings
