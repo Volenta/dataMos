@@ -17,7 +17,7 @@
             [taoensso.nippy :as nippy]
             [mount.core :as mnt :refer [defstate]]
             [taoensso.timbre :as log])
-  (:import [com.rabbitmq.client AlreadyClosedException]))
+  (:import [com.rabbitmq.client AlreadyClosedException ShutdownSignalException]))
 
 (declare remove-binding bind connection exchange queue)
 
@@ -135,11 +135,13 @@
   [conn-settings settings]
   (let [m (conj settings {:datamos/if-unused true})]
     (remove-binding connection bind)
-    (provide-channel le/delete
-                     m
-                     conn-settings
-                     [:datamos/exchange-name
-                      :datamos/if-unused])))
+    (try
+      (provide-channel le/delete
+                       m
+                       conn-settings
+                       [:datamos/exchange-name
+                        :datamos/if-unused])
+      (catch ShutdownSignalException e nil :bindings-attached-to-exchange))))
 
 (defstate ^{:on-reload :noop} exchange
           :start (set-exchange connection)
