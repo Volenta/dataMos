@@ -131,10 +131,12 @@
 (defn remove-exchange
   "Removes the RabbitMQ Exchange"
   [conn-settings settings]
-  (provide-channel le/delete
-                   settings
-                   conn-settings
-                   [:datamos/exchange-name]))
+  (let [m (conj settings {:datamos/if-unused true})]
+    (provide-channel le/delete
+                     m
+                     conn-settings
+                     [:datamos/exchange-name
+                      :datamos/if-unused])))
 
 (defstate ^{:on-reload :noop} exchange
           :start (set-exchange connection)
