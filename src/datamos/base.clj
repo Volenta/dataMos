@@ -3,8 +3,6 @@
             [taoensso.timbre :as log]
             [datamos.rdf-function :as rdf-fn]))
 
-(declare component)
-
 (defonce ^:private component-config (atom {}))               ; Stores the component specific configuration for first mount state.
 
 (defn component-function

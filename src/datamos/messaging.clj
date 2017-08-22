@@ -19,7 +19,7 @@
             [taoensso.timbre :as log])
   (:import [com.rabbitmq.client AlreadyClosedException ShutdownSignalException]))
 
-(declare remove-binding bind connection exchange queue)
+(declare remove-binding)
 
 (def connection-object-set
   #{com.novemberain.langohr.Connection
