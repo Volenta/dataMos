@@ -41,9 +41,4 @@
            :dms-def/provides))))
 
 (deftest values-by-predicate-test
-  (is (= '(:dmsfn-def/registry) (values-by-predicate :dms-def/function #:datamos-fn{:registry+dms-fn+b62056f7-fb5f-498a-a9a7-03c5a674c197 {:rdf/type         :dmsfn-def/module-id,
-                                                                                                                                           :rdfs/label       "registry",
-                                                                                                                                           :dms-def/function :dmsfn-def/registry,
-                                                                                                                                           :dms-def/provides #{:datamos-fn/de-register
-                                                                                                                                                               :datamos-fn/registry
-                                                                                                                                                               :datamos-fn/registration}}}))))
+  )
